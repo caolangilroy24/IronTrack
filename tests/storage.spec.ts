@@ -1,5 +1,6 @@
 import { seedExercises } from "@/data/seedExercises";
 import {
+  deleteWorkoutTemplateById,
   deleteExercises,
   deleteWorkoutLogs,
   deleteUserProfile,
@@ -11,6 +12,7 @@ import {
   getWorkoutTemplates,
   saveExercises,
   saveWorkoutLogs,
+  saveWorkoutTemplate,
   saveUserProfile,
   saveWorkoutTemplates,
   STORAGE_KEYS,
@@ -71,6 +73,20 @@ describe("local storage utilities", () => {
     );
 
     deleteWorkoutTemplates();
+    expect(getWorkoutTemplates()).toEqual([]);
+  });
+
+  it("upserts and deletes a single workout template", () => {
+    const updatedTemplate: WorkoutTemplate = {
+      ...templates[0],
+      name: "Push Day Plus",
+      exercises: [1, 3, 6],
+    };
+
+    expect(saveWorkoutTemplate(templates[0])).toEqual(templates);
+    expect(saveWorkoutTemplate(updatedTemplate)).toEqual([updatedTemplate]);
+    expect(getWorkoutTemplates()).toEqual([updatedTemplate]);
+    expect(deleteWorkoutTemplateById(updatedTemplate.id)).toEqual([]);
     expect(getWorkoutTemplates()).toEqual([]);
   });
 

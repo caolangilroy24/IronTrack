@@ -16,7 +16,7 @@ describe("muscle decay utility", () => {
     {
       id: 2,
       name: "Pull Day",
-      tags: ["Back", "Forearms"],
+      tags: ["Back", "Triceps", "Forearms"],
       exercises: [3, 4],
     },
     {
@@ -66,6 +66,7 @@ describe("muscle decay utility", () => {
       Back: 0.4,
       Legs: 0,
       Shoulders: 0.8,
+      Triceps: 0.4,
       Arms: 0.8,
       Abs: 0,
       Glutes: 0,
@@ -105,6 +106,7 @@ describe("muscle decay utility", () => {
     expect(decayMap.Shoulders).toBe(1);
     expect(decayMap.Arms).toBe(1);
     expect(decayMap.Back).toBe(0.4);
+    expect(decayMap.Triceps).toBe(0.4);
     expect(decayMap.Forearms).toBe(0.4);
   });
 });

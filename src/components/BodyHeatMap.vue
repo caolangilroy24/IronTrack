@@ -163,14 +163,14 @@
           <path
             id="triceps-left"
             d="M 24,40 L 32,46 L 29,64 L 22,58 Z"
-            :fill="getMuscleColor('Arms')"
+            :fill="getMuscleColor('Triceps')"
             stroke="#121212"
             stroke-width="1"
           />
           <path
             id="triceps-right"
             d="M 76,40 L 68,46 L 71,64 L 78,58 Z"
-            :fill="getMuscleColor('Arms')"
+            :fill="getMuscleColor('Triceps')"
             stroke="#121212"
             stroke-width="1"
           />

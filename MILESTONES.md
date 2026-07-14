@@ -31,6 +31,7 @@ Execute one milestone per chat session.
 
 - Build UI to create, view, and delete Workout Templates.
 - Allow mapping exercises and muscle tags to templates.
+- Add a 3 line menu button on the top right which allows navigation from Dashboard to Workouts and exercises and workout log and to start workout. Note building the actual workout logging screen is in the next milestone.
 
 ## Milestone 4 — Gym Floor Log Engine (Core Loop)
 

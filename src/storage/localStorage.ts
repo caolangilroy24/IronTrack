@@ -63,6 +63,29 @@ export function saveWorkoutTemplates(templates: WorkoutTemplate[]): void {
   saveArray(STORAGE_KEYS.workoutTemplates, templates);
 }
 
+export function saveWorkoutTemplate(template: WorkoutTemplate): WorkoutTemplate[] {
+  const templates = getWorkoutTemplates();
+  const existingIndex = templates.findIndex((item) => item.id === template.id);
+
+  if (existingIndex >= 0) {
+    templates.splice(existingIndex, 1, template);
+  } else {
+    templates.push(template);
+  }
+
+  saveWorkoutTemplates(templates);
+
+  return templates;
+}
+
+export function deleteWorkoutTemplateById(id: number): WorkoutTemplate[] {
+  const templates = getWorkoutTemplates().filter((template) => template.id !== id);
+
+  saveWorkoutTemplates(templates);
+
+  return templates;
+}
+
 export function deleteWorkoutTemplates(): void {
   removeArray(STORAGE_KEYS.workoutTemplates);
 }
