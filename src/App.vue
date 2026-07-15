@@ -3,7 +3,7 @@
     <q-header bordered class="bg-dark text-white">
       <q-toolbar class="q-px-md q-py-sm">
         <div>
-          <div class="text-overline text-deep-orange">IronTrack</div>
+          <div class="text-overline text-primary">IronTrack</div>
           <div class="text-subtitle1 text-weight-medium">{{ activeView.label }}</div>
         </div>
 
@@ -23,7 +23,7 @@
                 :key="view.key"
                 clickable
                 v-close-popup
-                @click="currentView = view.key"
+                @click="goTo(view.path)"
               >
                 <q-item-section>
                   <q-item-label>{{ view.label }}</q-item-label>
@@ -39,63 +39,91 @@
     </q-header>
 
     <q-page-container class="bg-black">
-      <Dashboard v-if="currentView === 'dashboard'" />
-      <RoutineTemplateManager v-else-if="currentView === 'templates'" />
-
-      <q-page v-else class="bg-black text-white q-pa-md">
-        <div class="q-mx-auto" style="max-width: 450px; min-height: 100vh">
-          <q-card flat bordered class="bg-dark text-white">
-            <q-card-section>
-              <div class="text-overline text-deep-orange">Milestone 3</div>
-              <div class="text-h5 text-weight-bold">{{ activeView.label }}</div>
-              <div class="text-subtitle2 text-grey-5">
-                {{ activeView.caption }}
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </q-page>
+      <router-view />
     </q-page-container>
   </q-layout>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import Dashboard from "@/components/Dashboard.vue";
-import RoutineTemplateManager from "@/components/RoutineTemplateManager.vue";
+import { computed, onMounted, onUnmounted } from "vue";
+import { setCssVar } from "quasar";
+import { useRoute, useRouter } from "vue-router";
+import { STORAGE_KEYS, getUserProfile } from "@/storage/localStorage";
+import { THEME_PALETTES } from "@/utils/themePalette";
 
-type ViewKey = "dashboard" | "templates" | "exercises" | "workout-log" | "start-workout";
+type ViewKey = "dashboard" | "templates" | "exercises" | "history" | "workout";
 
-const views: { key: ViewKey; label: string; caption: string }[] = [
+const router = useRouter();
+const route = useRoute();
+
+const views: { key: ViewKey; label: string; caption: string; path: string }[] = [
   {
     key: "dashboard",
     label: "Dashboard",
     caption: "Recovery heatmap and theme controls.",
+    path: "/",
   },
   {
     key: "templates",
     label: "Workouts",
     caption: "Create, edit, and delete reusable routine templates.",
+    path: "/workouts",
   },
   {
     key: "exercises",
     label: "Exercises",
-    caption: "Exercise management will stay dictionary-based until a later milestone.",
+    caption: "Search every exercise available from seed data and local storage.",
+    path: "/exercises",
   },
   {
-    key: "workout-log",
-    label: "Workout Log",
-    caption: "The active logging screen is scheduled for Milestone 4.",
+    key: "history",
+    label: "Workout History",
+    caption: "Review completed sessions grouped by training date.",
+    path: "/history",
   },
   {
-    key: "start-workout",
+    key: "workout",
     label: "Start Workout",
-    caption: "Workout launch flows will be added with the gym floor log engine.",
+    caption: "Run the gym floor logging loop with template-based set targets.",
+    path: "/workout",
   },
 ];
 
-const currentView = ref<ViewKey>("dashboard");
 const activeView = computed(
-  () => views.find((view) => view.key === currentView.value) ?? views[0],
+  () =>
+    views.find(
+      (view) =>
+        view.path === route.path ||
+        (route.path === "/logs" && view.path === "/history"),
+    ) ?? views[0],
 );
+
+function goTo(path: string): void {
+  if (route.path !== path) {
+    void router.push(path);
+  }
+}
+
+function applyThemeFromProfile(): void {
+  const palette = THEME_PALETTES[getUserProfile().themeColor];
+
+  setCssVar("primary", palette.high);
+  setCssVar("secondary", palette.med);
+  setCssVar("accent", palette.low);
+}
+
+function handleStorageSync(event: StorageEvent): void {
+  if (event.key === STORAGE_KEYS.userProfile) {
+    applyThemeFromProfile();
+  }
+}
+
+onMounted(() => {
+  applyThemeFromProfile();
+  window.addEventListener("storage", handleStorageSync);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("storage", handleStorageSync);
+});
 </script>

@@ -33,11 +33,14 @@ Execute one milestone per chat session.
 - Allow mapping exercises and muscle tags to templates.
 - Add a 3 line menu button on the top right which allows navigation from Dashboard to Workouts and exercises and workout log and to start workout. Note building the actual workout logging screen is in the next milestone.
 
-## Milestone 4 — Gym Floor Log Engine (Core Loop)
+## Milestone 4 — Gym Floor Log Engine & Nav Views
 
-- Build active workout logging screen.
-- Auto-populate sets/weights from the previous log of the selected template.
-- Implement completion checkboxes and instant local storage saving.
+- **Exercise Library View:** Build view to list all exercises from seed data/Local Storage with a search filter.
+- **Workout Log History View:** Build view to display past completed `WorkoutLog` entries grouped by date.
+- **Active Workout Logger (Core Loop):**
+  - Select a `WorkoutTemplate` to start a workout.
+  - Auto-populate sets/weights from the previous historical log of that template.
+  - Interactive checkboxes to toggle set completion and instant save to Local Storage.
 
 ## Milestone 5 — Quality Validation & Deployment
 
