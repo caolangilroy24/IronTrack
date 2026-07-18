@@ -3,8 +3,9 @@
     <div class="manager-shell q-mx-auto column q-gutter-md">
       <q-card flat bordered class="bg-dark text-white">
         <q-card-section>
-          <div class="text-overline text-deep-orange">Milestone 3</div>
-          <div class="text-h5 text-weight-bold">Routine Template Manager</div>
+          <div class="text-h5 text-weight-bold text-primary">
+            Routine Template Manager
+          </div>
           <div class="text-subtitle2 text-grey-5">
             Build and maintain reusable routines for fast workout starts.
           </div>

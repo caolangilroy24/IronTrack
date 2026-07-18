@@ -1,15 +1,19 @@
 import { seedExercises } from "@/data/seedExercises";
 import {
+  LOCAL_USERS,
   deleteWorkoutTemplateById,
   deleteExercises,
   deleteWorkoutLogs,
   deleteUserProfile,
   deleteWorkoutTemplates,
+  getActiveUserId,
+  getLocalUsersWithTheme,
   getExercises,
   getLocalStoragePayload,
   getUserProfile,
   getWorkoutLogs,
   getWorkoutTemplates,
+  saveActiveUserId,
   saveExercises,
   saveWorkoutLogs,
   saveWorkoutTemplate,
@@ -26,6 +30,8 @@ import type {
 import { exportLocalStorageBackup } from "@/utils/exportBackup";
 
 describe("local storage utilities", () => {
+  const userId = "k-lin";
+
   const templates: WorkoutTemplate[] = [
     {
       id: 1,
@@ -64,16 +70,20 @@ describe("local storage utilities", () => {
   });
 
   it("saves, reads, and deletes workout templates", () => {
-    expect(getWorkoutTemplates()).toEqual([]);
+    expect(getWorkoutTemplates(userId)).toEqual([]);
 
-    saveWorkoutTemplates(templates);
-    expect(getWorkoutTemplates()).toEqual(templates);
-    expect(localStorage.getItem(STORAGE_KEYS.workoutTemplates)).toBe(
+    saveWorkoutTemplates(templates, userId);
+    expect(getWorkoutTemplates(userId)).toEqual(templates);
+    expect(
+      localStorage.getItem(
+        `irontrack.users.${userId}.${STORAGE_KEYS.workoutTemplates}`,
+      ),
+    ).toBe(
       JSON.stringify(templates),
     );
 
-    deleteWorkoutTemplates();
-    expect(getWorkoutTemplates()).toEqual([]);
+    deleteWorkoutTemplates(userId);
+    expect(getWorkoutTemplates(userId)).toEqual([]);
   });
 
   it("upserts and deletes a single workout template", () => {
@@ -83,11 +93,13 @@ describe("local storage utilities", () => {
       exercises: [1, 3, 6],
     };
 
-    expect(saveWorkoutTemplate(templates[0])).toEqual(templates);
-    expect(saveWorkoutTemplate(updatedTemplate)).toEqual([updatedTemplate]);
-    expect(getWorkoutTemplates()).toEqual([updatedTemplate]);
-    expect(deleteWorkoutTemplateById(updatedTemplate.id)).toEqual([]);
-    expect(getWorkoutTemplates()).toEqual([]);
+    expect(saveWorkoutTemplate(templates[0], userId)).toEqual(templates);
+    expect(saveWorkoutTemplate(updatedTemplate, userId)).toEqual([
+      updatedTemplate,
+    ]);
+    expect(getWorkoutTemplates(userId)).toEqual([updatedTemplate]);
+    expect(deleteWorkoutTemplateById(updatedTemplate.id, userId)).toEqual([]);
+    expect(getWorkoutTemplates(userId)).toEqual([]);
   });
 
   it("saves, reads, and deletes exercises", () => {
@@ -104,50 +116,105 @@ describe("local storage utilities", () => {
   });
 
   it("saves, reads, and deletes workout logs", () => {
-    expect(getWorkoutLogs()).toEqual([]);
+    expect(getWorkoutLogs(userId)).toEqual([]);
 
-    saveWorkoutLogs(logs);
-    expect(getWorkoutLogs()).toEqual(logs);
-    expect(localStorage.getItem(STORAGE_KEYS.workoutLogs)).toBe(
+    saveWorkoutLogs(logs, userId);
+    expect(getWorkoutLogs(userId)).toEqual(logs);
+    expect(
+      localStorage.getItem(`irontrack.users.${userId}.${STORAGE_KEYS.workoutLogs}`),
+    ).toBe(
       JSON.stringify(logs),
     );
 
-    deleteWorkoutLogs();
-    expect(getWorkoutLogs()).toEqual([]);
+    deleteWorkoutLogs(userId);
+    expect(getWorkoutLogs(userId)).toEqual([]);
   });
 
   it("returns the combined local storage payload", () => {
-    saveWorkoutTemplates(templates);
+    saveWorkoutTemplates(templates, userId);
     saveExercises(exercises);
-    saveWorkoutLogs(logs);
-    saveUserProfile(profile);
+    saveWorkoutLogs(logs, userId);
+    saveUserProfile(profile, userId);
 
     expect(getLocalStoragePayload()).toEqual({
-      workoutTemplates: templates,
+      activeUserId: "k-lin",
+      users: [
+        {
+          id: "k-lin",
+          name: "K-Lin",
+          workoutTemplates: templates,
+          workoutLogs: logs,
+          userProfile: profile,
+        },
+        {
+          id: "maz",
+          name: "Maz",
+          workoutTemplates: [],
+          workoutLogs: [],
+          userProfile: { themeColor: "orange" },
+        },
+        {
+          id: "needlebeard",
+          name: "NeedleBeard",
+          workoutTemplates: [],
+          workoutLogs: [],
+          userProfile: { themeColor: "orange" },
+        },
+        {
+          id: "bigsteve",
+          name: "BigSteve",
+          workoutTemplates: [],
+          workoutLogs: [],
+          userProfile: { themeColor: "orange" },
+        },
+      ],
       exercises,
-      workoutLogs: logs,
-      userProfile: profile,
     });
   });
 
-  it("saves, reads, and deletes user profile with orange default", () => {
-    expect(getUserProfile()).toEqual({ themeColor: "orange" });
+  it("stores and validates active user selection", () => {
+    expect(getActiveUserId()).toBe("k-lin");
 
-    saveUserProfile(profile);
-    expect(getUserProfile()).toEqual(profile);
-    expect(localStorage.getItem(STORAGE_KEYS.userProfile)).toBe(
+    saveActiveUserId("maz");
+    expect(getActiveUserId()).toBe("maz");
+
+    saveActiveUserId("unknown-user");
+    expect(getActiveUserId()).toBe("maz");
+  });
+
+  it("returns local users with each user's active theme", () => {
+    saveUserProfile({ themeColor: "blue" }, "maz");
+    saveUserProfile({ themeColor: "red" }, "bigsteve");
+
+    expect(getLocalUsersWithTheme()).toEqual([
+      { id: "k-lin", name: "K-Lin", themeColor: "orange" },
+      { id: "maz", name: "Maz", themeColor: "blue" },
+      { id: "needlebeard", name: "NeedleBeard", themeColor: "orange" },
+      { id: "bigsteve", name: "BigSteve", themeColor: "red" },
+    ]);
+    expect(LOCAL_USERS).toHaveLength(4);
+  });
+
+  it("saves, reads, and deletes user profile with orange default", () => {
+    expect(getUserProfile(userId)).toEqual({ themeColor: "orange" });
+
+    saveUserProfile(profile, userId);
+    expect(getUserProfile(userId)).toEqual(profile);
+    expect(
+      localStorage.getItem(`irontrack.users.${userId}.${STORAGE_KEYS.userProfile}`),
+    ).toBe(
       JSON.stringify(profile),
     );
 
-    deleteUserProfile();
-    expect(getUserProfile()).toEqual({ themeColor: "orange" });
+    deleteUserProfile(userId);
+    expect(getUserProfile(userId)).toEqual({ themeColor: "orange" });
   });
 
   it("exports the local storage payload as downloadable json", async () => {
-    saveWorkoutTemplates(templates);
+    saveWorkoutTemplates(templates, userId);
     saveExercises(exercises);
-    saveWorkoutLogs(logs);
-    saveUserProfile(profile);
+    saveWorkoutLogs(logs, userId);
+    saveUserProfile(profile, userId);
 
     const createObjectURL = jest.fn().mockReturnValue("blob:backup");
     const revokeObjectURL = jest.fn();
@@ -183,10 +250,38 @@ describe("local storage utilities", () => {
     const blob = createObjectURL.mock.calls[0][0] as Blob;
 
     expect(JSON.parse(json)).toEqual({
-      workoutTemplates: templates,
+      activeUserId: "k-lin",
+      users: [
+        {
+          id: "k-lin",
+          name: "K-Lin",
+          workoutTemplates: templates,
+          workoutLogs: logs,
+          userProfile: profile,
+        },
+        {
+          id: "maz",
+          name: "Maz",
+          workoutTemplates: [],
+          workoutLogs: [],
+          userProfile: { themeColor: "orange" },
+        },
+        {
+          id: "needlebeard",
+          name: "NeedleBeard",
+          workoutTemplates: [],
+          workoutLogs: [],
+          userProfile: { themeColor: "orange" },
+        },
+        {
+          id: "bigsteve",
+          name: "BigSteve",
+          workoutTemplates: [],
+          workoutLogs: [],
+          userProfile: { themeColor: "orange" },
+        },
+      ],
       exercises,
-      workoutLogs: logs,
-      userProfile: profile,
     });
     expect(blob).toBeInstanceOf(Blob);
     expect(blob.type).toBe("application/json");

@@ -3,30 +3,39 @@
     <div class="dashboard-shell q-mx-auto">
       <q-card flat bordered class="bg-dark text-white full-height">
         <q-card-section>
-          <div class="text-overline text-primary">Milestone 2</div>
-          <div class="text-h4 text-weight-bold">Recovery Dashboard</div>
+          <div class="text-h4 text-weight-bold text-primary">Láidir Dashboard</div>
           <div class="text-subtitle2 text-grey-5">
-            Your recent training intensity fades toward neutral as rest days
-            pass.
+            Welcome to Láidir. Your recent training intensity fades toward
+            neutral as rest days pass.
           </div>
         </q-card-section>
 
         <q-separator dark />
 
-        <q-card-section class="q-gutter-sm">
-          <div class="text-subtitle2 text-grey-4">Highlight Theme</div>
-          <div class="row q-gutter-sm">
-            <q-btn
-              v-for="themeColor in themeOptions"
-              :key="themeColor"
-              round
-              unelevated
-              size="md"
-              :aria-label="`Select ${themeColor} theme`"
-              :style="getThemeSwatchStyle(themeColor)"
-              @click="selectTheme(themeColor)"
-            />
-          </div>
+        <q-card-section>
+          <q-expansion-item
+            v-model="isThemeSelectionOpen"
+            dense
+            dense-toggle
+            switch-toggle-side
+            expand-separator
+            icon="palette"
+            label="Theme Selection"
+            header-class="text-grey-4"
+          >
+            <div class="row q-gutter-sm q-pt-sm">
+              <q-btn
+                v-for="themeColor in themeOptions"
+                :key="themeColor"
+                round
+                unelevated
+                size="md"
+                :aria-label="`Select ${themeColor} theme`"
+                :style="getThemeSwatchStyle(themeColor)"
+                @click="selectTheme(themeColor)"
+              />
+            </div>
+          </q-expansion-item>
         </q-card-section>
 
         <q-card-section>
@@ -58,6 +67,18 @@
             :user-highlight-color="profile.themeColor"
           />
         </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-btn
+            unelevated
+            color="primary"
+            text-color="white"
+            class="full-width"
+            label="Start Workout"
+            icon="fitness_center"
+            @click="goToWorkout"
+          />
+        </q-card-section>
       </q-card>
     </div>
   </q-page>
@@ -66,17 +87,20 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { setCssVar } from "quasar";
+import { useRouter } from "vue-router";
 import BodyHeatMap from "@/components/BodyHeatMap.vue";
 import { getUserProfile, saveUserProfile } from "@/storage/localStorage";
 import type { MuscleGroup, ThemeColor, UserProfile } from "@/types/models";
 import { getStoredMuscleDecayMap } from "@/utils/muscleDecay";
 import { THEME_PALETTES, getIntensityColor } from "@/utils/themePalette";
 
+const router = useRouter();
 const themeOptions: ThemeColor[] = ["orange", "red", "blue", "purple"];
 const summaryMuscleGroups: MuscleGroup[] = ["Chest", "Back", "Legs"];
 
 const profile = ref<UserProfile>(getUserProfile());
 const muscleDecayMap = ref(getStoredMuscleDecayMap());
+const isThemeSelectionOpen = ref(false);
 
 const activePalette = computed(() => THEME_PALETTES[profile.value.themeColor]);
 
@@ -99,6 +123,11 @@ function selectTheme(themeColor: ThemeColor): void {
   };
 
   saveUserProfile(profile.value);
+  isThemeSelectionOpen.value = false;
+}
+
+function goToWorkout(): void {
+  void router.push("/workout");
 }
 
 function getThemeSwatchStyle(themeColor: ThemeColor): Record<string, string> {

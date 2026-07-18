@@ -3,8 +3,7 @@
     <div class="view-shell q-mx-auto column q-gutter-md">
       <q-card flat bordered class="bg-dark text-white">
         <q-card-section>
-          <div class="text-overline text-primary">Milestone 4</div>
-          <div class="text-h5 text-weight-bold">Workout History</div>
+          <div class="text-h5 text-weight-bold text-primary">Workout History</div>
           <div class="text-subtitle2 text-grey-5">
             Completed sessions grouped by date with total volume and set counts.
           </div>

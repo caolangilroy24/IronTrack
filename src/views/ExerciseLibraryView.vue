@@ -3,8 +3,7 @@
     <div class="view-shell q-mx-auto column q-gutter-md">
       <q-card flat bordered class="bg-dark text-white">
         <q-card-section>
-          <div class="text-overline text-primary">Milestone 4</div>
-          <div class="text-h5 text-weight-bold">Exercise Library</div>
+          <div class="text-h5 text-weight-bold text-primary">Exercise Library</div>
           <div class="text-subtitle2 text-grey-5">
             Search every exercise synced from seed data and local storage.
           </div>

@@ -15,6 +15,15 @@ export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
 
 export type ThemeColor = "orange" | "red" | "blue" | "purple";
 
+export interface LocalUser {
+  id: string;
+  name: string;
+}
+
+export interface LocalUserProfile extends LocalUser {
+  themeColor: ThemeColor;
+}
+
 export interface WorkoutTemplate {
   id: number;
   name: string; // e.g., "30-Min Chest & Shoulders"

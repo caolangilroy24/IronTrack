@@ -42,8 +42,25 @@ Execute one milestone per chat session.
   - Auto-populate sets/weights from the previous historical log of that template.
   - Interactive checkboxes to toggle set completion and instant save to Local Storage.
 
-## Milestone 5 — Quality Validation & Deployment
+## Milestone 5 — Local Multi-User Profile Mode (Frontend-Only)
+
+- Add a fixed, hardcoded user list controlled in-app (no signup, no auth).
+- Add active profile selection UI (name picker) and persist selected profile locally.
+- Add `userId` scoping to stored templates/logs/profile data in Local Storage.
+- Filter all views by selected `userId` so each user sees their own records by default.
+- Keep this explicitly marked as interim/trust-based mode for private use.
+
+## Milestone 6 — Quality Validation & Private Beta Deployment
 
 - Run full Jest test suite.
 - Verify all Vue components follow `<template>` -> `<script>` -> `<style>` layout.
 - Build production static bundle (`npm run build`).
+- Add private-hosting hardening checklist (HTTPS, whitelist/VPN/Tailscale, backups).
+- Deploy private V1 for trusted users and collect UI/UX feedback.
+
+## Milestone 7 — Backend, Auth, and Sync (Post-V1)
+
+- Add backend API and Postgres persistence.
+- Implement real user auth (signup/login/session or JWT refresh flow).
+- Migrate from frontend-only profile mode to authenticated user accounts.
+- Add per-user authorization checks and cloud sync across devices.

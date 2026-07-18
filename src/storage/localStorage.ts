@@ -1,26 +1,51 @@
 import type {
   Exercise,
+  LocalUser,
+  LocalUserProfile,
   UserProfile,
   WorkoutLog,
   WorkoutTemplate,
 } from "@/types/models";
 
 export const STORAGE_KEYS = {
-  workoutTemplates: "irontrack.workoutTemplates",
+  workoutTemplates: "workoutTemplates",
   exercises: "irontrack.exercises",
-  workoutLogs: "irontrack.workoutLogs",
-  userProfile: "irontrack.userProfile",
+  workoutLogs: "workoutLogs",
+  userProfile: "userProfile",
+  activeUserId: "irontrack.activeUserId",
 } as const;
+
+export const LOCAL_USERS: LocalUser[] = [
+  { id: "k-lin", name: "K-Lin" },
+  { id: "maz", name: "Maz" },
+  { id: "needlebeard", name: "NeedleBeard" },
+  { id: "bigsteve", name: "BigSteve" },
+];
+
+const DEFAULT_ACTIVE_USER_ID = LOCAL_USERS[0].id;
 
 const DEFAULT_USER_PROFILE: UserProfile = {
   themeColor: "orange",
 };
 
 export interface LocalStoragePayload {
-  workoutTemplates: WorkoutTemplate[];
+  activeUserId: string;
+  users: {
+    id: string;
+    name: string;
+    workoutTemplates: WorkoutTemplate[];
+    workoutLogs: WorkoutLog[];
+    userProfile: UserProfile;
+  }[];
   exercises: Exercise[];
-  workoutLogs: WorkoutLog[];
-  userProfile: UserProfile;
+}
+
+function isValidLocalUserId(userId: string): boolean {
+  return LOCAL_USERS.some((user) => user.id === userId);
+}
+
+function getUserScopedKey(baseKey: string, userId: string): string {
+  return `irontrack.users.${userId}.${baseKey}`;
 }
 
 function readArray<T>(key: string): T[] {
@@ -55,16 +80,51 @@ function saveObject<T>(key: string, item: T): void {
   localStorage.setItem(key, JSON.stringify(item));
 }
 
-export function getWorkoutTemplates(): WorkoutTemplate[] {
-  return readArray<WorkoutTemplate>(STORAGE_KEYS.workoutTemplates);
+export function getActiveUserId(): string {
+  const storedUserId = localStorage.getItem(STORAGE_KEYS.activeUserId);
+
+  if (storedUserId && isValidLocalUserId(storedUserId)) {
+    return storedUserId;
+  }
+
+  localStorage.setItem(STORAGE_KEYS.activeUserId, DEFAULT_ACTIVE_USER_ID);
+
+  return DEFAULT_ACTIVE_USER_ID;
 }
 
-export function saveWorkoutTemplates(templates: WorkoutTemplate[]): void {
-  saveArray(STORAGE_KEYS.workoutTemplates, templates);
+export function saveActiveUserId(userId: string): void {
+  if (!isValidLocalUserId(userId)) {
+    return;
+  }
+
+  localStorage.setItem(STORAGE_KEYS.activeUserId, userId);
 }
 
-export function saveWorkoutTemplate(template: WorkoutTemplate): WorkoutTemplate[] {
-  const templates = getWorkoutTemplates();
+export function getLocalUsersWithTheme(): LocalUserProfile[] {
+  return LOCAL_USERS.map((user) => ({
+    ...user,
+    themeColor: getUserProfile(user.id).themeColor,
+  }));
+}
+
+export function getWorkoutTemplates(userId: string = getActiveUserId()): WorkoutTemplate[] {
+  return readArray<WorkoutTemplate>(
+    getUserScopedKey(STORAGE_KEYS.workoutTemplates, userId),
+  );
+}
+
+export function saveWorkoutTemplates(
+  templates: WorkoutTemplate[],
+  userId: string = getActiveUserId(),
+): void {
+  saveArray(getUserScopedKey(STORAGE_KEYS.workoutTemplates, userId), templates);
+}
+
+export function saveWorkoutTemplate(
+  template: WorkoutTemplate,
+  userId: string = getActiveUserId(),
+): WorkoutTemplate[] {
+  const templates = getWorkoutTemplates(userId);
   const existingIndex = templates.findIndex((item) => item.id === template.id);
 
   if (existingIndex >= 0) {
@@ -73,21 +133,26 @@ export function saveWorkoutTemplate(template: WorkoutTemplate): WorkoutTemplate[
     templates.push(template);
   }
 
-  saveWorkoutTemplates(templates);
+  saveWorkoutTemplates(templates, userId);
 
   return templates;
 }
 
-export function deleteWorkoutTemplateById(id: number): WorkoutTemplate[] {
-  const templates = getWorkoutTemplates().filter((template) => template.id !== id);
+export function deleteWorkoutTemplateById(
+  id: number,
+  userId: string = getActiveUserId(),
+): WorkoutTemplate[] {
+  const templates = getWorkoutTemplates(userId).filter(
+    (template) => template.id !== id,
+  );
 
-  saveWorkoutTemplates(templates);
+  saveWorkoutTemplates(templates, userId);
 
   return templates;
 }
 
-export function deleteWorkoutTemplates(): void {
-  removeArray(STORAGE_KEYS.workoutTemplates);
+export function deleteWorkoutTemplates(userId: string = getActiveUserId()): void {
+  removeArray(getUserScopedKey(STORAGE_KEYS.workoutTemplates, userId));
 }
 
 export function getExercises(): Exercise[] {
@@ -102,35 +167,51 @@ export function deleteExercises(): void {
   removeArray(STORAGE_KEYS.exercises);
 }
 
-export function getWorkoutLogs(): WorkoutLog[] {
-  return readArray<WorkoutLog>(STORAGE_KEYS.workoutLogs);
+export function getWorkoutLogs(userId: string = getActiveUserId()): WorkoutLog[] {
+  return readArray<WorkoutLog>(getUserScopedKey(STORAGE_KEYS.workoutLogs, userId));
 }
 
-export function saveWorkoutLogs(logs: WorkoutLog[]): void {
-  saveArray(STORAGE_KEYS.workoutLogs, logs);
+export function saveWorkoutLogs(
+  logs: WorkoutLog[],
+  userId: string = getActiveUserId(),
+): void {
+  saveArray(getUserScopedKey(STORAGE_KEYS.workoutLogs, userId), logs);
 }
 
-export function deleteWorkoutLogs(): void {
-  removeArray(STORAGE_KEYS.workoutLogs);
+export function deleteWorkoutLogs(userId: string = getActiveUserId()): void {
+  removeArray(getUserScopedKey(STORAGE_KEYS.workoutLogs, userId));
 }
 
-export function getUserProfile(): UserProfile {
-  return readObject<UserProfile>(STORAGE_KEYS.userProfile, DEFAULT_USER_PROFILE);
+export function getUserProfile(userId: string = getActiveUserId()): UserProfile {
+  return readObject<UserProfile>(
+    getUserScopedKey(STORAGE_KEYS.userProfile, userId),
+    DEFAULT_USER_PROFILE,
+  );
 }
 
-export function saveUserProfile(profile: UserProfile): void {
-  saveObject(STORAGE_KEYS.userProfile, profile);
+export function saveUserProfile(
+  profile: UserProfile,
+  userId: string = getActiveUserId(),
+): void {
+  saveObject(getUserScopedKey(STORAGE_KEYS.userProfile, userId), profile);
 }
 
-export function deleteUserProfile(): void {
-  localStorage.removeItem(STORAGE_KEYS.userProfile);
+export function deleteUserProfile(userId: string = getActiveUserId()): void {
+  localStorage.removeItem(getUserScopedKey(STORAGE_KEYS.userProfile, userId));
 }
 
 export function getLocalStoragePayload(): LocalStoragePayload {
+  const activeUserId = getActiveUserId();
+
   return {
-    workoutTemplates: getWorkoutTemplates(),
+    activeUserId,
+    users: LOCAL_USERS.map((user) => ({
+      id: user.id,
+      name: user.name,
+      workoutTemplates: getWorkoutTemplates(user.id),
+      workoutLogs: getWorkoutLogs(user.id),
+      userProfile: getUserProfile(user.id),
+    })),
     exercises: getExercises(),
-    workoutLogs: getWorkoutLogs(),
-    userProfile: getUserProfile(),
   };
 }
