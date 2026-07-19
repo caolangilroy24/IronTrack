@@ -4,4 +4,6 @@ dist/
 coverage/
 .env
 .env.*
-.github
+*.local
+laidir_backup_*.json
+irontrack-backup*.json

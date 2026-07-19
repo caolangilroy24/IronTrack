@@ -27,6 +27,7 @@ export function exportLocalUserStorageBackup(
   userId?: string,
   now = new Date(),
 ): string {
+  // Launch V1: Add an optional passphrase-protected export mode before broadening access beyond trusted whitelist testers.
   const payload = getLocalUserStoragePayload(userId)
   const json = JSON.stringify(payload, null, 2)
 

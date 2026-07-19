@@ -11,3 +11,7 @@ Eliminate data tracking friction. If a user is repeating a workout, they should 
 - **Frontend:** Vue 3 (Composition API), Quasar Framework, TypeScript, Vite
 - **Storage:** Local-first Web Storage (IndexedDB/localStorage) with decoupled interface abstractions for future database sync.
 - **Testing:** Jest
+
+## Milestone 6 Private Beta
+
+Use `PRIVATE_BETA_CHECKLIST.md` for the full deployment and whitelist hardening steps required before sharing V1 with trusted users.

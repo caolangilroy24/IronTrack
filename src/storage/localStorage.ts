@@ -42,6 +42,7 @@ function isValidLocalUserId(userId: string): boolean {
 }
 
 function getUserScopedKey(baseKey: string, userId: string): string {
+  // Launch V1: Keep this user-id scoping strict and validated because profile separation is trust-based until authenticated accounts are added in Milestone 7.
   return `irontrack.users.${userId}.${baseKey}`;
 }
 
@@ -362,6 +363,7 @@ export function getLocalStoragePayload(): LocalStoragePayload {
 export function getLocalUserStoragePayload(
   userId: string = getActiveUserId(),
 ): LocalUserStoragePayload {
+  // Launch V1: Backup payload is plain JSON for portability; if host threat model changes, introduce encryption-at-rest for exported files.
   const localUser =
     LOCAL_USERS.find((user) => user.id === userId) ?? LOCAL_USERS[0];
 
