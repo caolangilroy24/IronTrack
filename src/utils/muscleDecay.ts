@@ -52,11 +52,11 @@ export function calculateMuscleDecayMap(
       continue;
     }
 
-    for (const tag of template.tags) {
-      const previousDate = latestLogByMuscleGroup.get(tag);
+    for (const muscleGroup of template.muscleGroups) {
+      const previousDate = latestLogByMuscleGroup.get(muscleGroup);
 
       if (!previousDate || workoutDate > previousDate) {
-        latestLogByMuscleGroup.set(tag, workoutDate);
+        latestLogByMuscleGroup.set(muscleGroup, workoutDate);
       }
     }
   }

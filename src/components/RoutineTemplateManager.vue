@@ -23,18 +23,18 @@
             />
 
             <div>
-              <div class="text-subtitle2 text-grey-4 q-mb-sm">Muscle tags</div>
+              <div class="text-subtitle2 text-grey-4 q-mb-sm">Muscle groups</div>
               <div class="row q-gutter-sm">
                 <q-chip
-                  v-for="tag in templateTags"
-                  :key="tag"
+                  v-for="muscleGroup in templateMuscleGroups"
+                  :key="muscleGroup"
                   clickable
                   square
-                  :color="form.tags.includes(tag) ? 'deep-orange' : 'grey-9'"
-                  :text-color="form.tags.includes(tag) ? 'black' : 'white'"
-                  @click="toggleTag(tag)"
+                  :color="form.muscleGroups.includes(muscleGroup) ? 'deep-orange' : 'grey-9'"
+                  :text-color="form.muscleGroups.includes(muscleGroup) ? 'black' : 'white'"
+                  @click="toggleMuscleGroup(muscleGroup)"
                 >
-                  {{ tag }}
+                  {{ muscleGroup }}
                 </q-chip>
               </div>
             </div>
@@ -113,14 +113,14 @@
                 </div>
                 <div class="row q-gutter-xs q-mt-sm">
                   <q-chip
-                    v-for="tag in template.tags"
-                    :key="`${template.id}-${tag}`"
+                    v-for="muscleGroup in template.muscleGroups"
+                    :key="`${template.id}-${muscleGroup}`"
                     dense
                     square
                     color="deep-orange"
                     text-color="black"
                   >
-                    {{ tag }}
+                    {{ muscleGroup }}
                   </q-chip>
                 </div>
                 <div class="text-caption text-grey-5 q-mt-sm">
@@ -165,11 +165,11 @@ import type { Exercise, MuscleGroup, WorkoutTemplate } from "@/types/models";
 
 type TemplateFormState = {
   name: string;
-  tags: MuscleGroup[];
+  muscleGroups: MuscleGroup[];
   exercises: number[];
 };
 
-const templateTags: MuscleGroup[] = [
+const templateMuscleGroups: MuscleGroup[] = [
   "Chest",
   "Shoulders",
   "Triceps",
@@ -187,7 +187,7 @@ const templates = ref<WorkoutTemplate[]>(getWorkoutTemplates());
 const exercises = ref<Exercise[]>(loadExercises());
 const form = reactive<TemplateFormState>({
   name: "",
-  tags: [],
+  muscleGroups: [],
   exercises: [],
 });
 
@@ -201,7 +201,7 @@ const exerciseOptions = computed(() =>
 const isSubmitDisabled = computed(
   () =>
     form.name.trim().length === 0 ||
-    form.tags.length === 0 ||
+    form.muscleGroups.length === 0 ||
     form.exercises.length === 0,
 );
 
@@ -209,7 +209,7 @@ const isPristine = computed(
   () =>
     editingTemplateId.value === null &&
     form.name.length === 0 &&
-    form.tags.length === 0 &&
+    form.muscleGroups.length === 0 &&
     form.exercises.length === 0,
 );
 
@@ -225,14 +225,14 @@ function loadExercises(): Exercise[] {
   return seedExercises;
 }
 
-function toggleTag(tag: MuscleGroup): void {
-  if (!MUSCLE_GROUPS.includes(tag)) {
+function toggleMuscleGroup(muscleGroup: MuscleGroup): void {
+  if (!MUSCLE_GROUPS.includes(muscleGroup)) {
     return;
   }
 
-  form.tags = form.tags.includes(tag)
-    ? form.tags.filter((item) => item !== tag)
-    : [...form.tags, tag];
+  form.muscleGroups = form.muscleGroups.includes(muscleGroup)
+    ? form.muscleGroups.filter((item) => item !== muscleGroup)
+    : [...form.muscleGroups, muscleGroup];
 }
 
 function submitTemplate(): void {
@@ -243,7 +243,7 @@ function submitTemplate(): void {
   const template: WorkoutTemplate = {
     id: editingTemplateId.value ?? getNextTemplateId(),
     name: form.name.trim(),
-    tags: [...form.tags],
+    muscleGroups: [...form.muscleGroups],
     exercises: [...form.exercises],
   };
 
@@ -256,7 +256,7 @@ function submitTemplate(): void {
 function startEdit(template: WorkoutTemplate): void {
   editingTemplateId.value = template.id;
   form.name = template.name;
-  form.tags = [...template.tags];
+  form.muscleGroups = [...template.muscleGroups];
   form.exercises = [...template.exercises];
 }
 
@@ -271,7 +271,7 @@ function removeTemplate(id: number): void {
 function resetForm(): void {
   editingTemplateId.value = null;
   form.name = "";
-  form.tags = [];
+  form.muscleGroups = [];
   form.exercises = [];
 }
 

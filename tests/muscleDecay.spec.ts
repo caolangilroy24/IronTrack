@@ -10,19 +10,19 @@ describe("muscle decay utility", () => {
     {
       id: 1,
       name: "Push Day",
-      tags: ["Chest", "Shoulders", "Arms"],
+      muscleGroups: ["Chest", "Shoulders", "Arms"],
       exercises: [1, 2],
     },
     {
       id: 2,
       name: "Pull Day",
-      tags: ["Back", "Triceps", "Forearms"],
+      muscleGroups: ["Back", "Triceps", "Forearms"],
       exercises: [3, 4],
     },
     {
       id: 3,
       name: "Leg Day",
-      tags: ["Legs", "Glutes", "Calves", "Abs"],
+      muscleGroups: ["Legs", "Glutes", "Calves", "Abs"],
       exercises: [5, 6],
     },
   ];
@@ -62,6 +62,7 @@ describe("muscle decay utility", () => {
     );
 
     expect(decayMap).toEqual({
+      Biceps: 0,
       Chest: 0.8,
       Back: 0.4,
       Legs: 0,
@@ -72,6 +73,12 @@ describe("muscle decay utility", () => {
       Glutes: 0,
       Calves: 0,
       Forearms: 0.4,
+      Quads: 0,
+      Hamstrings: 0,
+      "Lower Back": 0,
+      "Upper Back": 0,
+      Traps: 0,
+      Neck: 0,
     });
   });
 

@@ -44,14 +44,14 @@ describe("local storage utilities", () => {
     {
       id: 1,
       name: "Push Day",
-      tags: ["Chest", "Shoulders"],
+      muscleGroups: ["Chest", "Shoulders"],
       exercises: [1, 3],
     },
   ];
 
   const exercises: Exercise[] = [
-    { id: 1, name: "Bench Press" },
-    { id: 3, name: "Incline Dumbbell Press" },
+    { id: 1, name: "Bench Press", muscleGroups: ["Chest", "Triceps", "Shoulders"] },
+    { id: 3, name: "Incline Dumbbell Press", muscleGroups: ["Chest", "Shoulders", "Triceps"] },
   ];
 
   const logs: WorkoutLog[] = [
@@ -86,9 +86,7 @@ describe("local storage utilities", () => {
       localStorage.getItem(
         `irontrack.users.${userId}.${STORAGE_KEYS.workoutTemplates}`,
       ),
-    ).toBe(
-      JSON.stringify(templates),
-    );
+    ).toBe(JSON.stringify(getWorkoutTemplates(userId)));
 
     deleteWorkoutTemplates(userId);
     expect(getWorkoutTemplates(userId)).toEqual([]);
@@ -279,7 +277,7 @@ describe("local storage utilities", () => {
           themeColor: "purple",
         },
       },
-      exercises: [{ id: 7, name: "Barbell Row" }],
+      exercises: [{ id: 7, name: "Barbell Row", muscleGroups: [] }],
     });
   });
 
@@ -294,13 +292,13 @@ describe("local storage utilities", () => {
         {
           id: 2,
           name: "Leg Day",
-          tags: ["Legs"],
+          muscleGroups: ["Legs"],
           exercises: [2],
         },
       ],
       userId,
     );
-    saveExercises([...exercises, { id: 2, name: "Squat" }]);
+    saveExercises([...exercises, { id: 2, name: "Squat", muscleGroups: ["Legs", "Quads", "Glutes"] }]);
 
     expect(
       getLocalUserImportPlan({
@@ -320,11 +318,11 @@ describe("local storage utilities", () => {
         {
           id: 2,
           name: "Leg Day",
-          tags: ["Legs"],
+          muscleGroups: ["Legs"],
           exercises: [2],
         },
       ],
-      missingExercises: [{ id: 2, name: "Squat" }],
+      missingExercises: [{ id: 2, name: "Squat", muscleGroups: ["Legs", "Quads", "Glutes"] }],
     });
   });
 
@@ -334,7 +332,7 @@ describe("local storage utilities", () => {
         {
           id: 1,
           name: "Old Push Day",
-          tags: ["Chest"],
+          muscleGroups: ["Chest"],
           exercises: [1],
         },
       ],
@@ -356,7 +354,7 @@ describe("local storage utilities", () => {
       ],
       userId,
     );
-    saveExercises([{ id: 1, name: "Bench Press" }]);
+    saveExercises([{ id: 1, name: "Bench Press", muscleGroups: ["Chest", "Triceps", "Shoulders"] }]);
 
     const result = applyLocalUserStorageImport({
       user: {
@@ -414,13 +412,13 @@ describe("local storage utilities", () => {
         {
           id: 2,
           name: "Leg Day",
-          tags: ["Legs"],
+          muscleGroups: ["Legs"],
           exercises: [2],
         },
       ],
       userId,
     );
-    saveExercises([...exercises, { id: 2, name: "Squat" }]);
+    saveExercises([...exercises, { id: 2, name: "Squat", muscleGroups: ["Legs", "Quads", "Glutes"] }]);
 
     applyLocalUserStorageImport(
       {
@@ -479,6 +477,31 @@ describe("local storage utilities", () => {
 
     deleteUserProfile(userId);
     expect(getUserProfile(userId)).toEqual({ themeColor: "orange" });
+  });
+
+  it("normalizes legacy template tags and exercise muscle groups from storage", () => {
+    localStorage.setItem(
+      `irontrack.users.${userId}.${STORAGE_KEYS.workoutTemplates}`,
+      JSON.stringify([
+        {
+          id: 1,
+          name: "Push Day",
+          tags: ["Chest", "Shoulders"],
+          exercises: [1, 3],
+        },
+      ]),
+    );
+    localStorage.setItem(
+      STORAGE_KEYS.exercises,
+      JSON.stringify([
+        { id: 1, name: "Bench Press" },
+      ]),
+    );
+
+    expect(getWorkoutTemplates(userId)).toEqual(templates);
+    expect(getExercises()).toEqual([
+      { id: 1, name: "Bench Press", muscleGroups: [] },
+    ]);
   });
 
   it("exports the local storage payload as downloadable json", async () => {
@@ -645,10 +668,26 @@ describe("seed exercises", () => {
   it("includes standard starter exercises", () => {
     expect(seedExercises).toEqual(
       expect.arrayContaining([
-        { id: 1, name: "Bench Press" },
-        { id: 2, name: "Squat" },
-        { id: 3, name: "Incline Dumbbell Press" },
-        { id: 4, name: "Pull-ups" },
+        {
+          id: 1,
+          name: "Bench Press",
+          muscleGroups: ["Chest", "Triceps", "Shoulders"],
+        },
+        {
+          id: 2,
+          name: "Squat",
+          muscleGroups: ["Legs", "Quads", "Glutes"],
+        },
+        {
+          id: 3,
+          name: "Incline Dumbbell Press",
+          muscleGroups: ["Chest", "Shoulders", "Triceps"],
+        },
+        {
+          id: 4,
+          name: "Pull-ups",
+          muscleGroups: ["Back", "Biceps", "Forearms", "Upper Back"],
+        },
       ]),
     );
   });

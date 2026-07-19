@@ -9,6 +9,13 @@ export const MUSCLE_GROUPS = [
   "Glutes",
   "Calves",
   "Forearms",
+  "Quads",
+  "Hamstrings",
+  "Lower Back",
+  "Upper Back",
+  "Biceps",
+  "Traps",
+  "Neck",
 ] as const;
 
 export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
@@ -27,13 +34,14 @@ export interface LocalUserProfile extends LocalUser {
 export interface WorkoutTemplate {
   id: number;
   name: string; // e.g., "30-Min Chest & Shoulders"
-  tags: MuscleGroup[]; // Muscle tags for Home Screen Heatmap (e.g., ["Chest", "Shoulders"])
+  muscleGroups: MuscleGroup[]; // Muscle tags for Home Screen Heatmap (e.g., ["Chest", "Shoulders"])
   exercises: number[]; // Ordered array of Exercise IDs
 }
 
 export interface Exercise {
   id: number;
   name: string; // e.g., "Incline Dumbbell Press"
+  muscleGroups: MuscleGroup[]; // Primary muscles targeted by the exercise
 }
 
 export interface LoggedSet {

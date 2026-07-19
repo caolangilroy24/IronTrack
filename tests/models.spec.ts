@@ -1,15 +1,25 @@
-import type { WorkoutLog, WorkoutTemplate } from '@/types/models'
+import type { Exercise, WorkoutLog, WorkoutTemplate } from '@/types/models'
 
 describe('core workout models', () => {
   it('supports workout template shape', () => {
     const template: WorkoutTemplate = {
       id: 1,
       name: '30-Min Chest & Shoulders',
-      tags: ['Chest', 'Shoulders'],
+      muscleGroups: ['Chest', 'Shoulders'],
       exercises: [10, 11],
     }
 
     expect(template.exercises).toHaveLength(2)
+  })
+
+  it('supports exercise shape with muscle groups', () => {
+    const exercise: Exercise = {
+      id: 10,
+      name: 'Incline Dumbbell Press',
+      muscleGroups: ['Chest', 'Shoulders', 'Triceps'],
+    }
+
+    expect(exercise.muscleGroups).toContain('Chest')
   })
 
   it('supports workout log shape', () => {

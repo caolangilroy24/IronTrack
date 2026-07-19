@@ -36,6 +36,16 @@ const DEFAULT_USER_PROFILE: UserProfile = {
 
 const VALID_THEME_COLORS = new Set(["orange", "red", "blue", "purple"]);
 const THEME_COLORS = ["orange", "red", "blue", "purple"] as const;
+const muscleGroupSchema = z.enum(MUSCLE_GROUPS);
+// we have not released yet so this can be removed in future but ensure all associated code also removed
+type LegacyWorkoutTemplate = Omit<WorkoutTemplate, "muscleGroups"> & {
+  tags?: unknown;
+  muscleGroups?: unknown;
+};
+
+type LegacyExercise = Omit<Exercise, "muscleGroups"> & {
+  muscleGroups?: unknown;
+};
 
 function isValidLocalUserId(userId: string): boolean {
   return LOCAL_USERS.some((user) => user.id === userId);
@@ -46,19 +56,70 @@ function getUserScopedKey(baseKey: string, userId: string): string {
   return `irontrack.users.${userId}.${baseKey}`;
 }
 
-const exerciseSchema: z.ZodType<Exercise> = z.object({
-  id: z.number(),
-  name: z.string(),
-});
+function normalizeMuscleGroups(value: unknown): Exercise["muscleGroups"] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
 
-const muscleGroupSchema = z.enum(MUSCLE_GROUPS);
+  return value.filter(
+    (muscleGroup): muscleGroup is Exercise["muscleGroups"][number] =>
+      typeof muscleGroup === "string" &&
+      MUSCLE_GROUPS.includes(muscleGroup as Exercise["muscleGroups"][number]),
+  );
+}
 
-const workoutTemplateSchema: z.ZodType<WorkoutTemplate> = z.object({
-  id: z.number(),
-  name: z.string(),
-  tags: z.array(muscleGroupSchema),
-  exercises: z.array(z.number()),
-});
+function normalizeWorkoutTemplate(
+  template: WorkoutTemplate | LegacyWorkoutTemplate,
+): WorkoutTemplate {
+  const { tags, muscleGroups, ...rest } = template as LegacyWorkoutTemplate;
+
+  return {
+    ...rest,
+    muscleGroups: normalizeMuscleGroups(muscleGroups ?? tags),
+  } as WorkoutTemplate;
+}
+
+function normalizeExercise(exercise: Exercise | LegacyExercise): Exercise {
+  const { muscleGroups, ...rest } = exercise as LegacyExercise;
+
+  return {
+    ...rest,
+    muscleGroups: normalizeMuscleGroups(muscleGroups),
+  } as Exercise;
+}
+
+const exerciseSchema: z.ZodType<Exercise> = z.preprocess(
+  (value) => {
+    if (!value || typeof value !== "object") {
+      return value;
+    }
+
+    return normalizeExercise(value as Exercise | LegacyExercise);
+  },
+  z.object({
+    id: z.number(),
+    name: z.string(),
+    muscleGroups: z.array(muscleGroupSchema),
+  }),
+);
+
+const workoutTemplateSchema: z.ZodType<WorkoutTemplate> = z.preprocess(
+  (value) => {
+    if (!value || typeof value !== "object") {
+      return value;
+    }
+
+    return normalizeWorkoutTemplate(
+      value as WorkoutTemplate | LegacyWorkoutTemplate,
+    );
+  },
+  z.object({
+    id: z.number(),
+    name: z.string(),
+    muscleGroups: z.array(muscleGroupSchema),
+    exercises: z.array(z.number()),
+  }),
+);
 
 const workoutSetSchema = z.object({
   id: z.number(),
@@ -80,8 +141,7 @@ const workoutLogSchema: z.ZodType<WorkoutLog> = z.object({
 });
 
 const themeColorSchema = z.preprocess(
-  (value) =>
-    typeof value === "string" ? value.trim().toLowerCase() : value,
+  (value) => (typeof value === "string" ? value.trim().toLowerCase() : value),
   z.enum(THEME_COLORS),
 );
 
@@ -244,16 +304,19 @@ export function getLocalUsersWithTheme(): LocalUserProfile[] {
 export function getWorkoutTemplates(
   userId: string = getActiveUserId(),
 ): WorkoutTemplate[] {
-  return readArray<WorkoutTemplate>(
+  return readArray<WorkoutTemplate | LegacyWorkoutTemplate>(
     getUserScopedKey(STORAGE_KEYS.workoutTemplates, userId),
-  );
+  ).map(normalizeWorkoutTemplate);
 }
 
 export function saveWorkoutTemplates(
   templates: WorkoutTemplate[],
   userId: string = getActiveUserId(),
 ): void {
-  saveArray(getUserScopedKey(STORAGE_KEYS.workoutTemplates, userId), templates);
+  saveArray(
+    getUserScopedKey(STORAGE_KEYS.workoutTemplates, userId),
+    templates.map(normalizeWorkoutTemplate),
+  );
 }
 
 export function saveWorkoutTemplate(
@@ -294,11 +357,13 @@ export function deleteWorkoutTemplates(
 }
 
 export function getExercises(): Exercise[] {
-  return readArray<Exercise>(STORAGE_KEYS.exercises);
+  return readArray<Exercise | LegacyExercise>(STORAGE_KEYS.exercises).map(
+    normalizeExercise,
+  );
 }
 
 export function saveExercises(exercises: Exercise[]): void {
-  saveArray(STORAGE_KEYS.exercises, exercises);
+  saveArray(STORAGE_KEYS.exercises, exercises.map(normalizeExercise));
 }
 
 export function deleteExercises(): void {
