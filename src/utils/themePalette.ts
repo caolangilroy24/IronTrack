@@ -28,9 +28,9 @@ export const THEME_PALETTES: Record<ThemeColor, ThemePalette> = {
   },
   purple: {
     base: "#2a2a2a",
-    low: "#ce93d8",
-    med: "#ab47bc",
-    high: "#4a148c",
+    low: "#d4c2ff",
+    med: "#9c6dff",
+    high: "#6c2bff",
   },
 };
 

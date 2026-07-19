@@ -1,5 +1,8 @@
 <template>
   <q-layout view="lHh Lpr lFf" class="bg-black text-white">
+    <!--
+      Keeping this full-width header for future responsive laptop/desktop layouts.
+      For now, navigation controls are moved into the in-frame mobile header below.
     <q-header bordered class="bg-dark text-white">
       <q-toolbar class="q-px-md q-py-sm">
         <div>
@@ -62,9 +65,72 @@
         </q-btn>
       </q-toolbar>
     </q-header>
+    -->
 
     <q-page-container class="bg-black">
-      <router-view :key="activeUserId" />
+      <div class="phone-shell q-mx-auto">
+        <div class="in-frame-header">
+          <q-toolbar class="q-px-sm q-py-xs">
+            <div class="brand-title brand-title--compact text-primary">Láidir</div>
+
+            <q-space />
+
+            <q-btn-dropdown
+              flat
+              dense
+              no-caps
+              color="primary"
+              class="q-mr-xs"
+              :label="activeUserName"
+              dropdown-icon="keyboard_arrow_down"
+              aria-label="Select active user"
+            >
+              <q-list dark class="bg-grey-10 text-white" style="min-width: 170px">
+                <q-item
+                  v-for="user in userOptions"
+                  :key="user.value"
+                  clickable
+                  v-close-popup
+                  @click="handleUserChange(user.value)"
+                >
+                  <q-item-section>
+                    <q-item-label>{{ user.label }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-btn-dropdown>
+
+            <q-btn flat round dense aria-label="Open navigation menu">
+              <div class="column q-gutter-xs">
+                <q-separator dark color="white" style="width: 18px" />
+                <q-separator dark color="white" style="width: 18px" />
+                <q-separator dark color="white" style="width: 18px" />
+              </div>
+
+              <q-menu dark class="bg-grey-10 text-white">
+                <q-list separator style="min-width: 220px">
+                  <q-item
+                    v-for="view in views"
+                    :key="view.key"
+                    clickable
+                    v-close-popup
+                    @click="goTo(view.path)"
+                  >
+                    <q-item-section>
+                      <q-item-label>{{ view.label }}</q-item-label>
+                      <q-item-label caption class="text-grey-5">
+                        {{ view.caption }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
+          </q-toolbar>
+        </div>
+
+        <router-view :key="activeUserId" />
+      </div>
     </q-page-container>
   </q-layout>
 </template>
@@ -120,15 +186,6 @@ const views: { key: ViewKey; label: string; caption: string; path: string }[] = 
     path: "/workout",
   },
 ];
-
-const activeView = computed(
-  () =>
-    views.find(
-      (view) =>
-        view.path === route.path ||
-        (route.path === "/logs" && view.path === "/history"),
-    ) ?? views[0],
-);
 
 const userOptions = computed(() =>
   LOCAL_USERS.map((user) => ({
@@ -193,5 +250,23 @@ onUnmounted(() => {
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.brand-title--compact {
+  font-size: 0.9rem;
+}
+
+.phone-shell {
+  max-width: 520px;
+  min-height: 100vh;
+}
+
+.in-frame-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.88);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
 }
 </style>

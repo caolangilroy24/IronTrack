@@ -3,10 +3,9 @@
     <div class="dashboard-shell q-mx-auto">
       <q-card flat bordered class="bg-dark text-white full-height">
         <q-card-section>
-          <div class="text-h4 text-weight-bold text-primary">Láidir Dashboard</div>
+          <div class="text-subtitle1 text-weight-bold text-primary">Dashboard</div>
           <div class="text-subtitle2 text-grey-5">
-            Welcome to Láidir. Your recent training intensity fades toward
-            neutral as rest days pass.
+            Your recent training intensity fades toward neutral as rest days pass.
           </div>
         </q-card-section>
 

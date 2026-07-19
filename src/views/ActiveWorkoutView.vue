@@ -3,9 +3,7 @@
     <div class="view-shell q-mx-auto column q-gutter-md">
       <q-card flat bordered class="bg-dark text-white">
         <q-card-section>
-          <div class="text-h5 text-weight-bold text-primary">
-            Workout Floor Logger
-          </div>
+          <div class="text-subtitle1 text-weight-bold text-primary">Workout Logger</div>
           <div class="text-subtitle2 text-grey-5">
             Pick a template, complete sets with one tap, and save instantly.
           </div>
