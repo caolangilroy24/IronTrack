@@ -1,5 +1,6 @@
 import { seedExercises } from "@/data/seedExercises";
 import {
+  applyLocalUserStorageImport,
   LOCAL_USERS,
   deleteWorkoutTemplateById,
   deleteExercises,
@@ -9,10 +10,13 @@ import {
   getActiveUserId,
   getLocalUsersWithTheme,
   getExercises,
+  getLocalUserImportPlan,
+  getLocalUserStoragePayload,
   getLocalStoragePayload,
   getUserProfile,
   getWorkoutLogs,
   getWorkoutTemplates,
+  parseLocalUserStoragePayload,
   saveActiveUserId,
   saveExercises,
   saveWorkoutLogs,
@@ -27,7 +31,11 @@ import type {
   WorkoutLog,
   WorkoutTemplate,
 } from "@/types/models";
-import { exportLocalStorageBackup } from "@/utils/exportBackup";
+import {
+  buildBackupFileName,
+  exportLocalStorageBackup,
+  exportLocalUserStorageBackup,
+} from "@/utils/exportBackup";
 
 describe("local storage utilities", () => {
   const userId = "k-lin";
@@ -172,6 +180,269 @@ describe("local storage utilities", () => {
     });
   });
 
+  it("returns a user-specific export payload", () => {
+    saveWorkoutTemplates(templates, userId);
+    saveWorkoutLogs(logs, userId);
+    saveUserProfile(profile, userId);
+    saveExercises(exercises);
+
+    expect(getLocalUserStoragePayload(userId)).toEqual({
+      user: {
+        id: "k-lin",
+        name: "K-Lin",
+        workoutTemplates: templates,
+        workoutLogs: logs,
+        userProfile: profile,
+      },
+      exercises,
+    });
+  });
+
+  it("parses a valid user-specific import payload", () => {
+    const payloadJson = JSON.stringify({
+      user: {
+        id: "k-lin",
+        name: "Changed Name",
+        workoutTemplates: templates,
+        workoutLogs: logs,
+        userProfile: profile,
+      },
+      exercises,
+    });
+
+    expect(parseLocalUserStoragePayload(payloadJson)).toEqual({
+      user: {
+        id: "k-lin",
+        name: "Changed Name",
+        workoutTemplates: templates,
+        workoutLogs: logs,
+        userProfile: profile,
+      },
+      exercises,
+    });
+  });
+
+  it("parses theme color from user-edited casing and whitespace", () => {
+    const payloadJson = JSON.stringify({
+      user: {
+        id: "k-lin",
+        name: "K-Lin",
+        workoutTemplates: templates,
+        workoutLogs: logs,
+        userProfile: {
+          themeColor: " Purple ",
+        },
+      },
+      exercises,
+    });
+
+    expect(parseLocalUserStoragePayload(payloadJson)).toEqual({
+      user: {
+        id: "k-lin",
+        name: "K-Lin",
+        workoutTemplates: templates,
+        workoutLogs: logs,
+        userProfile: {
+          themeColor: "purple",
+        },
+      },
+      exercises,
+    });
+  });
+
+  it("parses user-specific payload when pasted JSON contains smart quotes", () => {
+    const payloadJson = `{
+      "user": {
+        "id": "k-lin",
+        "name": "K-Lin",
+        "workoutTemplates": [],
+        "workoutLogs": [],
+        "userProfile": {
+          "themeColor": “purple"
+        }
+      },
+      "exercises": [
+        {
+          "id": 7,
+          "name": "Barbell Row"
+        }
+      ]
+    }`;
+
+    expect(parseLocalUserStoragePayload(payloadJson)).toEqual({
+      user: {
+        id: "k-lin",
+        name: "K-Lin",
+        workoutTemplates: [],
+        workoutLogs: [],
+        userProfile: {
+          themeColor: "purple",
+        },
+      },
+      exercises: [{ id: 7, name: "Barbell Row" }],
+    });
+  });
+
+  it("rejects an invalid user-specific import payload", () => {
+    expect(parseLocalUserStoragePayload('{"user":{"id":"k-lin"}}')).toBeNull();
+  });
+
+  it("builds an import plan for missing local templates and exercises", () => {
+    saveWorkoutTemplates(
+      [
+        ...templates,
+        {
+          id: 2,
+          name: "Leg Day",
+          tags: ["Legs"],
+          exercises: [2],
+        },
+      ],
+      userId,
+    );
+    saveExercises([...exercises, { id: 2, name: "Squat" }]);
+
+    expect(
+      getLocalUserImportPlan({
+        user: {
+          id: "k-lin",
+          name: "K-Lin",
+          workoutTemplates: templates,
+          workoutLogs: logs,
+          userProfile: profile,
+        },
+        exercises,
+      }),
+    ).toEqual({
+      targetUserId: "k-lin",
+      targetUserName: "K-Lin",
+      missingWorkoutTemplates: [
+        {
+          id: 2,
+          name: "Leg Day",
+          tags: ["Legs"],
+          exercises: [2],
+        },
+      ],
+      missingExercises: [{ id: 2, name: "Squat" }],
+    });
+  });
+
+  it("merges imported user data without overwriting local-only logs", () => {
+    saveWorkoutTemplates(
+      [
+        {
+          id: 1,
+          name: "Old Push Day",
+          tags: ["Chest"],
+          exercises: [1],
+        },
+      ],
+      userId,
+    );
+    saveWorkoutLogs(
+      [
+        {
+          id: 1,
+          templateId: 1,
+          date: "2026-07-12T12:00:00.000Z",
+          exercises: [
+            {
+              exerciseId: 1,
+              sets: [{ id: 1, reps: 5, weight: 135, completed: true }],
+            },
+          ],
+        },
+      ],
+      userId,
+    );
+    saveExercises([{ id: 1, name: "Bench Press" }]);
+
+    const result = applyLocalUserStorageImport({
+      user: {
+        id: "k-lin",
+        name: "K-Lin",
+        workoutTemplates: templates,
+        workoutLogs: logs,
+        userProfile: profile,
+      },
+      exercises,
+    });
+
+    expect(result?.targetUserId).toBe("k-lin");
+    expect(getWorkoutTemplates(userId)).toEqual(templates);
+    expect(getUserProfile(userId)).toEqual(profile);
+    expect(getWorkoutLogs(userId)).toEqual([
+      {
+        ...logs[0],
+        id: 2,
+      },
+      {
+        id: 1,
+        templateId: 1,
+        date: "2026-07-12T12:00:00.000Z",
+        exercises: [
+          {
+            exerciseId: 1,
+            sets: [{ id: 1, reps: 5, weight: 135, completed: true }],
+          },
+        ],
+      },
+    ]);
+    expect(LOCAL_USERS.find((user) => user.id === userId)?.name).toBe("K-Lin");
+  });
+
+  it("rejects import plans when backup user name does not match local identity", () => {
+    expect(
+      getLocalUserImportPlan({
+        user: {
+          id: "k-lin",
+          name: "Edited Name",
+          workoutTemplates: templates,
+          workoutLogs: logs,
+          userProfile: profile,
+        },
+        exercises,
+      }),
+    ).toBeNull();
+  });
+
+  it("deletes selected missing items before merging import data", () => {
+    saveWorkoutTemplates(
+      [
+        ...templates,
+        {
+          id: 2,
+          name: "Leg Day",
+          tags: ["Legs"],
+          exercises: [2],
+        },
+      ],
+      userId,
+    );
+    saveExercises([...exercises, { id: 2, name: "Squat" }]);
+
+    applyLocalUserStorageImport(
+      {
+        user: {
+          id: "k-lin",
+          name: "K-Lin",
+          workoutTemplates: templates,
+          workoutLogs: logs,
+          userProfile: profile,
+        },
+        exercises,
+      },
+      {
+        deleteWorkoutTemplateIds: [2],
+        deleteExerciseIds: [2],
+      },
+    );
+
+    expect(getWorkoutTemplates(userId)).toEqual(templates);
+    expect(getExercises()).toEqual(exercises);
+  });
+
   it("stores and validates active user selection", () => {
     expect(getActiveUserId()).toBe("k-lin");
 
@@ -289,6 +560,74 @@ describe("local storage utilities", () => {
     expect(click).toHaveBeenCalledTimes(1);
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:backup");
     expect(createElement).toHaveBeenCalledWith("a");
+
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: originalCreateObjectURL,
+    });
+
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: originalRevokeObjectURL,
+    });
+  });
+
+  it("exports a user-specific backup with a dated filename", () => {
+    saveWorkoutTemplates(templates, userId);
+    saveExercises(exercises);
+    saveWorkoutLogs(logs, userId);
+    saveUserProfile(profile, userId);
+
+    const createObjectURL = jest.fn().mockReturnValue("blob:user-backup");
+    const revokeObjectURL = jest.fn();
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectURL,
+    });
+
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: revokeObjectURL,
+    });
+
+    const click = jest.fn();
+    const createElement = jest
+      .spyOn(document, "createElement")
+      .mockImplementation((tagName: string) => {
+        if (tagName === "a") {
+          return {
+            href: "",
+            download: "",
+            click,
+          } as unknown as HTMLAnchorElement;
+        }
+
+        return document.createElement(tagName);
+      });
+
+    const json = exportLocalUserStorageBackup(userId, new Date("2026-07-19T12:00:00.000Z"));
+
+    expect(JSON.parse(json)).toEqual({
+      user: {
+        id: "k-lin",
+        name: "K-Lin",
+        workoutTemplates: templates,
+        workoutLogs: logs,
+        userProfile: profile,
+      },
+      exercises,
+    });
+    expect(buildBackupFileName(new Date("2026-07-19T12:00:00.000Z"))).toBe(
+      "laidir_backup_20260719.json",
+    );
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(createElement).toHaveBeenCalledWith("a");
+
+    const anchor = createElement.mock.results[0].value as HTMLAnchorElement;
+    expect(anchor.download).toBe("laidir_backup_20260719.json");
 
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,

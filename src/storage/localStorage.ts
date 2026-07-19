@@ -2,10 +2,16 @@ import type {
   Exercise,
   LocalUser,
   LocalUserProfile,
+  LocalStoragePayload,
+  LocalUserImportOptions,
+  LocalUserImportPlan,
+  LocalUserStoragePayload,
   UserProfile,
   WorkoutLog,
   WorkoutTemplate,
 } from "@/types/models";
+import { MUSCLE_GROUPS } from "@/types/models";
+import { z } from "zod";
 
 export const STORAGE_KEYS = {
   workoutTemplates: "workoutTemplates",
@@ -28,17 +34,8 @@ const DEFAULT_USER_PROFILE: UserProfile = {
   themeColor: "orange",
 };
 
-export interface LocalStoragePayload {
-  activeUserId: string;
-  users: {
-    id: string;
-    name: string;
-    workoutTemplates: WorkoutTemplate[];
-    workoutLogs: WorkoutLog[];
-    userProfile: UserProfile;
-  }[];
-  exercises: Exercise[];
-}
+const VALID_THEME_COLORS = new Set(["orange", "red", "blue", "purple"]);
+const THEME_COLORS = ["orange", "red", "blue", "purple"] as const;
 
 function isValidLocalUserId(userId: string): boolean {
   return LOCAL_USERS.some((user) => user.id === userId);
@@ -46,6 +43,128 @@ function isValidLocalUserId(userId: string): boolean {
 
 function getUserScopedKey(baseKey: string, userId: string): string {
   return `irontrack.users.${userId}.${baseKey}`;
+}
+
+const exerciseSchema: z.ZodType<Exercise> = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+
+const muscleGroupSchema = z.enum(MUSCLE_GROUPS);
+
+const workoutTemplateSchema: z.ZodType<WorkoutTemplate> = z.object({
+  id: z.number(),
+  name: z.string(),
+  tags: z.array(muscleGroupSchema),
+  exercises: z.array(z.number()),
+});
+
+const workoutSetSchema = z.object({
+  id: z.number(),
+  reps: z.number(),
+  weight: z.number(),
+  completed: z.boolean(),
+});
+
+const workoutLogSchema: z.ZodType<WorkoutLog> = z.object({
+  id: z.number(),
+  templateId: z.number(),
+  date: z.string(),
+  exercises: z.array(
+    z.object({
+      exerciseId: z.number(),
+      sets: z.array(workoutSetSchema),
+    }),
+  ),
+});
+
+const themeColorSchema = z.preprocess(
+  (value) =>
+    typeof value === "string" ? value.trim().toLowerCase() : value,
+  z.enum(THEME_COLORS),
+);
+
+const userProfileSchema: z.ZodType<UserProfile> = z.object({
+  themeColor: themeColorSchema,
+});
+
+const localUserStoragePayloadSchema: z.ZodType<LocalUserStoragePayload> =
+  z.object({
+    user: z.object({
+      id: z.string(),
+      name: z.string(),
+      workoutTemplates: z.array(workoutTemplateSchema),
+      workoutLogs: z.array(workoutLogSchema),
+      userProfile: userProfileSchema,
+    }),
+    exercises: z.array(exerciseSchema),
+  });
+
+function normalizeImportJson(rawJson: string): string {
+  return rawJson
+    .replace(/^\uFEFF/, "")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2018\u2019]/g, "'");
+}
+
+function sortByNumericId<T extends { id: number }>(items: T[]): T[] {
+  return items.slice().sort((left, right) => left.id - right.id);
+}
+
+function sortWorkoutLogsByDate(logs: WorkoutLog[]): WorkoutLog[] {
+  return logs.slice().sort((left, right) => {
+    return new Date(right.date).getTime() - new Date(left.date).getTime();
+  });
+}
+
+function getNextNumericId(items: Array<{ id: number }>): number {
+  return items.reduce((maxId, item) => Math.max(maxId, item.id), 0) + 1;
+}
+
+function mergeById<T extends { id: number }>(
+  existingItems: T[],
+  importedItems: T[],
+): T[] {
+  const mergedById = new Map<number, T>();
+
+  existingItems.forEach((item) => {
+    mergedById.set(item.id, item);
+  });
+
+  importedItems.forEach((item) => {
+    mergedById.set(item.id, item);
+  });
+
+  return sortByNumericId(Array.from(mergedById.values()));
+}
+
+function mergeWorkoutLogs(
+  existingLogs: WorkoutLog[],
+  importedLogs: WorkoutLog[],
+): WorkoutLog[] {
+  const mergedLogs = existingLogs.slice();
+  let nextLogId = getNextNumericId(existingLogs);
+
+  importedLogs.forEach((importedLog) => {
+    const existingLog = mergedLogs.find((log) => log.id === importedLog.id);
+
+    if (!existingLog) {
+      mergedLogs.push(importedLog);
+      return;
+    }
+
+    if (JSON.stringify(existingLog) === JSON.stringify(importedLog)) {
+      return;
+    }
+
+    mergedLogs.push({
+      ...importedLog,
+      id: nextLogId,
+    });
+    nextLogId += 1;
+  });
+
+  return sortWorkoutLogsByDate(mergedLogs);
 }
 
 function readArray<T>(key: string): T[] {
@@ -92,12 +211,26 @@ export function getActiveUserId(): string {
   return DEFAULT_ACTIVE_USER_ID;
 }
 
+export function getStoredActiveUserId(): string | null {
+  const storedUserId = localStorage.getItem(STORAGE_KEYS.activeUserId);
+
+  if (storedUserId && isValidLocalUserId(storedUserId)) {
+    return storedUserId;
+  }
+
+  return null;
+}
+
 export function saveActiveUserId(userId: string): void {
   if (!isValidLocalUserId(userId)) {
     return;
   }
 
   localStorage.setItem(STORAGE_KEYS.activeUserId, userId);
+}
+
+export function clearActiveUserId(): void {
+  localStorage.removeItem(STORAGE_KEYS.activeUserId);
 }
 
 export function getLocalUsersWithTheme(): LocalUserProfile[] {
@@ -107,7 +240,9 @@ export function getLocalUsersWithTheme(): LocalUserProfile[] {
   }));
 }
 
-export function getWorkoutTemplates(userId: string = getActiveUserId()): WorkoutTemplate[] {
+export function getWorkoutTemplates(
+  userId: string = getActiveUserId(),
+): WorkoutTemplate[] {
   return readArray<WorkoutTemplate>(
     getUserScopedKey(STORAGE_KEYS.workoutTemplates, userId),
   );
@@ -151,7 +286,9 @@ export function deleteWorkoutTemplateById(
   return templates;
 }
 
-export function deleteWorkoutTemplates(userId: string = getActiveUserId()): void {
+export function deleteWorkoutTemplates(
+  userId: string = getActiveUserId(),
+): void {
   removeArray(getUserScopedKey(STORAGE_KEYS.workoutTemplates, userId));
 }
 
@@ -167,8 +304,12 @@ export function deleteExercises(): void {
   removeArray(STORAGE_KEYS.exercises);
 }
 
-export function getWorkoutLogs(userId: string = getActiveUserId()): WorkoutLog[] {
-  return readArray<WorkoutLog>(getUserScopedKey(STORAGE_KEYS.workoutLogs, userId));
+export function getWorkoutLogs(
+  userId: string = getActiveUserId(),
+): WorkoutLog[] {
+  return readArray<WorkoutLog>(
+    getUserScopedKey(STORAGE_KEYS.workoutLogs, userId),
+  );
 }
 
 export function saveWorkoutLogs(
@@ -182,7 +323,9 @@ export function deleteWorkoutLogs(userId: string = getActiveUserId()): void {
   removeArray(getUserScopedKey(STORAGE_KEYS.workoutLogs, userId));
 }
 
-export function getUserProfile(userId: string = getActiveUserId()): UserProfile {
+export function getUserProfile(
+  userId: string = getActiveUserId(),
+): UserProfile {
   return readObject<UserProfile>(
     getUserScopedKey(STORAGE_KEYS.userProfile, userId),
     DEFAULT_USER_PROFILE,
@@ -214,4 +357,115 @@ export function getLocalStoragePayload(): LocalStoragePayload {
     })),
     exercises: getExercises(),
   };
+}
+
+export function getLocalUserStoragePayload(
+  userId: string = getActiveUserId(),
+): LocalUserStoragePayload {
+  const localUser =
+    LOCAL_USERS.find((user) => user.id === userId) ?? LOCAL_USERS[0];
+
+  return {
+    user: {
+      id: localUser.id,
+      name: localUser.name,
+      workoutTemplates: getWorkoutTemplates(localUser.id),
+      workoutLogs: getWorkoutLogs(localUser.id),
+      userProfile: getUserProfile(localUser.id),
+    },
+    exercises: getExercises(),
+  };
+}
+
+export function parseLocalUserStoragePayload(
+  json: string,
+): LocalUserStoragePayload | null {
+  try {
+    const parsed = JSON.parse(normalizeImportJson(json)) as unknown;
+    const result = localUserStoragePayloadSchema.safeParse(parsed);
+
+    if (!result.success) {
+      return null;
+    }
+
+    return result.data;
+  } catch {
+    return null;
+  }
+}
+
+export function getLocalUserImportPlan(
+  payload: LocalUserStoragePayload,
+): LocalUserImportPlan | null {
+  if (!isValidLocalUserId(payload.user.id)) {
+    return null;
+  }
+
+  const targetUser = LOCAL_USERS.find((user) => user.id === payload.user.id);
+
+  if (!targetUser) {
+    return null;
+  }
+
+  if (payload.user.name !== targetUser.name) {
+    return null;
+  }
+
+  const existingTemplates = getWorkoutTemplates(targetUser.id);
+  const existingExercises = getExercises();
+
+  return {
+    targetUserId: targetUser.id,
+    targetUserName: targetUser.name,
+    missingWorkoutTemplates: existingTemplates.filter(
+      (template) =>
+        !payload.user.workoutTemplates.some(
+          (importedTemplate) => importedTemplate.id === template.id,
+        ),
+    ), // using just Id in this check might lead to false positives if the imported template has the same Id but different content, but this is a reasonable compromise for now
+    missingExercises: existingExercises.filter(
+      (exercise) =>
+        !payload.exercises.some(
+          (importedExercise) => importedExercise.id === exercise.id,
+        ),
+    ), // using just Id in this check might lead to false positives if the imported template has the same Id but different content, but this is a reasonable compromise for now
+  };
+}
+
+export function applyLocalUserStorageImport(
+  payload: LocalUserStoragePayload,
+  options: LocalUserImportOptions = {},
+): LocalUserImportPlan | null {
+  const plan = getLocalUserImportPlan(payload);
+
+  if (!plan) {
+    return null;
+  }
+
+  const workoutTemplateDeleteSet = new Set(
+    options.deleteWorkoutTemplateIds ?? [],
+  );
+  const exerciseDeleteSet = new Set(options.deleteExerciseIds ?? []);
+
+  const mergedTemplates = mergeById(
+    getWorkoutTemplates(plan.targetUserId).filter(
+      (template) => !workoutTemplateDeleteSet.has(template.id),
+    ),
+    payload.user.workoutTemplates,
+  );
+  const mergedExercises = mergeById(
+    getExercises().filter((exercise) => !exerciseDeleteSet.has(exercise.id)),
+    payload.exercises,
+  );
+  const mergedLogs = mergeWorkoutLogs(
+    getWorkoutLogs(plan.targetUserId),
+    payload.user.workoutLogs,
+  );
+
+  saveWorkoutTemplates(mergedTemplates, plan.targetUserId);
+  saveExercises(mergedExercises);
+  saveWorkoutLogs(mergedLogs, plan.targetUserId);
+  saveUserProfile(payload.user.userProfile, plan.targetUserId);
+
+  return plan;
 }

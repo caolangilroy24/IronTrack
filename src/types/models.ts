@@ -56,3 +56,34 @@ export interface WorkoutLog {
 export interface UserProfile {
   themeColor: ThemeColor;
 }
+
+export interface LocalUserBackupRecord {
+  id: string;
+  name: string;
+  workoutTemplates: WorkoutTemplate[];
+  workoutLogs: WorkoutLog[];
+  userProfile: UserProfile;
+}
+
+export interface LocalStoragePayload {
+  activeUserId: string;
+  users: LocalUserBackupRecord[];
+  exercises: Exercise[];
+}
+
+export interface LocalUserStoragePayload {
+  user: LocalUserBackupRecord;
+  exercises: Exercise[];
+}
+
+export interface LocalUserImportPlan {
+  targetUserId: string;
+  targetUserName: string;
+  missingWorkoutTemplates: WorkoutTemplate[];
+  missingExercises: Exercise[];
+}
+
+export interface LocalUserImportOptions {
+  deleteWorkoutTemplateIds?: number[];
+  deleteExerciseIds?: number[];
+}
