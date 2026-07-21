@@ -6,7 +6,7 @@
     <q-header bordered class="bg-dark text-white">
       <q-toolbar class="q-px-md q-py-sm">
         <div>
-          <div class="brand-title text-primary">Láidir</div>
+          <div class="brand-title text-primary">{{ APP_CONFIG.displayName }}</div>
           <div class="text-subtitle1 text-weight-medium">{{ activeView.label }}</div>
         </div>
 
@@ -72,7 +72,7 @@
         <div class="in-frame-header">
           <q-toolbar class="q-px-sm q-py-xs">
             <div class="brand-title brand-title--compact text-primary">
-              Láidir
+              {{ APP_CONFIG.displayName }}
             </div>
 
             <q-space />
@@ -146,245 +146,211 @@
       </div>
     </q-page-container>
 
-    <q-dialog
+    <app-dialog-shell
       v-model="isLoginDialogOpen"
       :persistent="dialogMode === 'login' && !isImportDialogStandalone"
+      :show-close-button="dialogMode === 'import'"
+      close-aria-label="Close import dialog"
       @hide="handleLoginDialogHide"
+      @close="closeLoginDialog"
     >
-      <q-card class="login-card bg-grey-10 text-white">
-        <q-card-section class="q-pb-sm row items-start no-wrap">
-          <div class="col">
-            <div class="brand-title text-primary">Láidir</div>
-            <div class="text-subtitle1 text-weight-bold q-mt-xs">
-              {{ dialogMode === "login" ? "Login" : "Import Data" }}
-            </div>
-            <div class="text-caption text-grey-5 q-mt-xs">
-              <template v-if="dialogMode === 'login'">
-                Select your profile or import your backup to continue.
-              </template>
-              <template v-else>
-                Add a backup JSON file or paste backup JSON to import data.
-              </template>
-            </div>
-          </div>
+      <template #header>
+        <div class="brand-title text-primary">{{ APP_CONFIG.displayName }}</div>
+        <div class="text-subtitle1 text-weight-bold q-mt-xs">
+          {{ dialogMode === "login" ? "Login" : "Import Data" }}
+        </div>
+        <div class="text-caption text-grey-5 q-mt-xs">
+          <template v-if="dialogMode === 'login'">
+            Select your profile or import your backup to continue.
+          </template>
+          <template v-else>
+            Add a backup JSON file or paste backup JSON to import data.
+          </template>
+        </div>
+      </template>
 
-          <q-btn
-            v-if="dialogMode === 'import'"
-            flat
-            round
-            dense
-            icon="close"
-            color="grey-5"
-            aria-label="Close import dialog"
-            @click="closeLoginDialog"
-          />
-        </q-card-section>
+      <q-select
+        v-if="dialogMode === 'login'"
+        v-model="selectedUserId"
+        filled
+        dark
+        color="primary"
+        label="Select user"
+        emit-value
+        map-options
+        :options="loginUserOptions"
+      />
 
-        <q-separator dark />
+      <div v-else class="column q-gutter-sm">
+        <q-file
+          v-model="importFile"
+          filled
+          dark
+          color="primary"
+          label="Upload backup JSON"
+          accept=".json,application/json"
+          @update:model-value="handleImportFile"
+        />
 
-        <q-card-section>
-          <q-select
-            v-if="dialogMode === 'login'"
-            v-model="selectedUserId"
-            filled
-            dark
-            color="primary"
-            label="Select user"
-            emit-value
-            map-options
-            :options="loginUserOptions"
-          />
+        <q-input
+          v-model="importJsonInput"
+          filled
+          dark
+          type="textarea"
+          color="primary"
+          label="Or paste backup JSON"
+          class="import-json-input"
+          @update:model-value="validateImportInput"
+        />
 
-          <div v-else class="column q-gutter-sm">
-            <q-file
-              v-model="importFile"
-              filled
-              dark
-              color="primary"
-              label="Upload backup JSON"
-              accept=".json,application/json"
-              @update:model-value="handleImportFile"
-            />
-
-            <q-input
-              v-model="importJsonInput"
-              filled
-              dark
-              type="textarea"
-              color="primary"
-              label="Or paste backup JSON"
-              class="import-json-input"
-              @update:model-value="validateImportInput"
-            />
-
-            <div
-              v-if="importValidationMessage"
-              class="text-caption text-negative"
-            >
-              {{ importValidationMessage }}
-            </div>
-          </div>
-        </q-card-section>
-
-        <q-separator dark />
-
-        <q-card-actions align="between">
-          <q-btn
-            v-if="dialogMode === 'login'"
-            flat
-            color="grey-5"
-            label="Import History"
-            @click="openImportMode"
-          />
-
-          <q-btn
-            v-else
-            flat
-            color="grey-5"
-            :label="isImportDialogStandalone ? 'Close' : 'Login'"
-            @click="
-              isImportDialogStandalone ? closeLoginDialog() : openLoginMode()
-            "
-          />
-
-          <q-btn
-            v-if="dialogMode === 'login'"
-            unelevated
-            color="primary"
-            text-color="white"
-            label="Login"
-            :disable="selectedUserId === null"
-            @click="submitLogin"
-          />
-
-          <q-btn
-            v-else
-            unelevated
-            color="primary"
-            text-color="white"
-            label="Import"
-            :disable="!canSubmitImport"
-            @click="submitImport"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <q-dialog v-model="isLogoutDialogOpen" @hide="closeAccountDialog">
-      <q-card class="login-card bg-grey-10 text-white">
-        <q-card-section class="q-pb-sm row items-start no-wrap">
-          <div class="col">
-            <div class="text-subtitle1 text-weight-bold">
-              {{ accountDialogMode === "logout" ? "Logout" : "Export Data" }}
-            </div>
-            <div
-              v-if="accountDialogMode === 'logout'"
-              class="text-caption text-grey-5 q-mt-xs"
-            >
-              <template v-if="hasUnsavedProgress">
-                You have unsaved progress. Would you like to export data before
-                logging out?
-              </template>
-              <template v-else> Are you sure you want to log out? </template>
-            </div>
-            <div v-else class="text-caption text-grey-5 q-mt-xs">
-              Generate a user-specific backup payload, then copy it or save it.
-            </div>
-          </div>
-
-          <q-btn
-            flat
-            round
-            dense
-            icon="close"
-            color="grey-5"
-            aria-label="Close account dialog"
-            @click="closeAccountDialog"
-          />
-        </q-card-section>
-
-        <q-separator dark />
-
-        <q-card-section
-          v-if="accountDialogMode === 'export'"
-          class="q-pt-md q-pb-sm"
+        <div
+          v-if="importValidationMessage"
+          class="text-caption text-negative"
         >
-          <q-input
-            :model-value="exportedUserJson"
-            readonly
-            filled
-            dark
-            type="textarea"
-            label="User backup JSON"
-            class="export-json-input"
-          />
-        </q-card-section>
+          {{ importValidationMessage }}
+        </div>
+      </div>
 
-        <q-separator v-if="accountDialogMode === 'export'" dark />
+      <template #actions>
+        <q-btn
+          v-if="dialogMode === 'login'"
+          flat
+          color="grey-5"
+          label="Import History"
+          @click="openImportMode"
+        />
 
-        <q-card-actions align="between">
+        <q-btn
+          v-else
+          flat
+          color="grey-5"
+          :label="isImportDialogStandalone ? 'Close' : 'Login'"
+          @click="isImportDialogStandalone ? closeLoginDialog() : openLoginMode()"
+        />
+
+        <q-btn
+          v-if="dialogMode === 'login'"
+          unelevated
+          color="primary"
+          text-color="white"
+          label="Login"
+          :disable="selectedUserId === null"
+          @click="submitLogin"
+        />
+
+        <q-btn
+          v-else
+          unelevated
+          color="primary"
+          text-color="white"
+          label="Import"
+          :disable="!canSubmitImport"
+          @click="submitImport"
+        />
+      </template>
+    </app-dialog-shell>
+
+    <app-dialog-shell
+      v-model="isLogoutDialogOpen"
+      :show-close-button="true"
+      close-aria-label="Close account dialog"
+      :show-body-section="accountDialogMode === 'export'"
+      :show-body-separator="accountDialogMode === 'export'"
+      body-class="q-pt-md q-pb-sm"
+      @hide="closeAccountDialog"
+      @close="closeAccountDialog"
+    >
+      <template #header>
+        <div class="text-subtitle1 text-weight-bold">
+          {{ accountDialogMode === "logout" ? "Logout" : "Export Data" }}
+        </div>
+        <div
+          v-if="accountDialogMode === 'logout'"
+          class="text-caption text-grey-5 q-mt-xs"
+        >
+          <template v-if="hasUnsavedProgress">
+            You have unsaved progress. Would you like to export data before
+            logging out?
+          </template>
+          <template v-else> Are you sure you want to log out? </template>
+        </div>
+        <div v-else class="text-caption text-grey-5 q-mt-xs">
+          Generate a user-specific backup payload, then copy it or save it.
+        </div>
+      </template>
+
+      <q-input
+        :model-value="exportedUserJson"
+        readonly
+        filled
+        dark
+        type="textarea"
+        label="User backup JSON"
+        class="export-json-input"
+      />
+
+      <template #actions>
+        <q-btn
+          v-if="accountDialogMode === 'logout'"
+          flat
+          color="grey-5"
+          label="Logout"
+          @click="confirmLogout"
+        />
+
+        <q-btn
+          v-else-if="accountDialogEntry === 'logout'"
+          flat
+          color="grey-5"
+          label="Back to Logout"
+          @click="returnToLogoutView"
+        />
+
+        <q-btn
+          v-else
+          flat
+          color="grey-5"
+          label="Close"
+          @click="closeAccountDialog"
+        />
+
+        <div class="row items-center q-gutter-sm">
           <q-btn
             v-if="accountDialogMode === 'logout'"
-            flat
-            color="grey-5"
-            label="Logout"
-            @click="confirmLogout"
+            unelevated
+            color="primary"
+            text-color="white"
+            label="Export Data"
+            @click="openExportFromLogout"
           />
 
-          <q-btn
-            v-else-if="accountDialogEntry === 'logout'"
-            flat
-            color="grey-5"
-            label="Back to Logout"
-            @click="returnToLogoutView"
-          />
-
-          <q-btn
-            v-else
-            flat
-            color="grey-5"
-            label="Close"
-            @click="closeAccountDialog"
-          />
-
-          <div class="row items-center q-gutter-sm">
+          <template v-else>
             <q-btn
-              v-if="accountDialogMode === 'logout'"
+              v-if="exportedUserJson.length > 0"
+              flat
+              color="primary"
+              label="Copy"
+              @click="copyExportJson"
+            />
+            <q-btn
+              v-if="exportedUserJson.length > 0"
+              flat
+              color="primary"
+              label="Save"
+              @click="handleSaveExport"
+            />
+            <q-btn
+              v-if="exportedUserJson.length === 0"
               unelevated
               color="primary"
               text-color="white"
-              label="Export Data"
-              @click="openExportFromLogout"
+              label="Export"
+              @click="generateUserExportJson"
             />
-
-            <template v-else>
-              <q-btn
-                v-if="exportedUserJson.length > 0"
-                flat
-                color="primary"
-                label="Copy"
-                @click="copyExportJson"
-              />
-              <q-btn
-                v-if="exportedUserJson.length > 0"
-                flat
-                color="primary"
-                label="Save"
-                @click="handleSaveExport"
-              />
-              <q-btn
-                v-if="exportedUserJson.length === 0"
-                unelevated
-                color="primary"
-                text-color="white"
-                label="Export"
-                @click="generateUserExportJson"
-              />
-            </template>
-          </div>
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+          </template>
+        </div>
+      </template>
+    </app-dialog-shell>
 
     <q-dialog
       v-model="isImportReviewDialogOpen"
@@ -500,13 +466,21 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { Notify, setCssVar } from "quasar";
 import { useRoute, useRouter } from "vue-router";
+import AppDialogShell from "@/components/AppDialogShell.vue";
+import {
+  APP_CONFIG,
+  INVALID_BACKUP_JSON_MESSAGE,
+} from "@/config/appConfig";
 import {
   applyLocalUserStorageImport,
   clearActiveUserId,
+  getUserExportSignature,
+  isUserProfileStorageKey,
   getLocalUserImportPlan,
   getLocalUserStoragePayload,
   LOCAL_USERS,
   parseLocalUserStoragePayload,
+  saveUserExportSignature,
   STORAGE_KEYS,
   getWorkoutLogs,
   getWorkoutTemplates,
@@ -550,8 +524,6 @@ const pendingImportPayload = ref<LocalUserStoragePayload | null>(null);
 const pendingImportPlan = ref<LocalUserImportPlan | null>(null);
 const selectedMissingTemplateIds = ref<number[]>([]);
 const selectedMissingExerciseIds = ref<number[]>([]);
-
-const EXPORT_SIGNATURE_KEY_PREFIX = "irontrack.users";
 
 const views: { key: ViewKey; label: string; caption: string; path: string }[] =
   [
@@ -611,9 +583,7 @@ const hasUnsavedProgress = computed(() => {
   const templates = getWorkoutTemplates(activeUserId.value);
   const logs = getWorkoutLogs(activeUserId.value);
   const hasData = templates.length > 0 || logs.length > 0;
-  const exportSignature = localStorage.getItem(
-    getExportSignatureKey(activeUserId.value),
-  );
+  const exportSignature = getUserExportSignature(activeUserId.value);
 
   if (!hasData) {
     return false;
@@ -670,10 +640,6 @@ function handleUserChange(userId: string): void {
   applyThemeFromProfile();
 }
 
-function getExportSignatureKey(userId: string): string {
-  return `${EXPORT_SIGNATURE_KEY_PREFIX}.${userId}.lastExportSignature`;
-}
-
 function openLogoutDialog(): void {
   accountDialogEntry.value = "logout";
   accountDialogMode.value = "logout";
@@ -728,12 +694,10 @@ function generateUserExportJson(): void {
 
   const payload = getLocalUserStoragePayload(activeUserId.value);
 
-  localStorage.setItem(
-    getExportSignatureKey(activeUserId.value),
-    JSON.stringify({
-      templates: payload.user.workoutTemplates,
-      logs: payload.user.workoutLogs,
-    }),
+  saveUserExportSignature(
+    activeUserId.value,
+    payload.user.workoutTemplates,
+    payload.user.workoutLogs,
   );
 }
 
@@ -848,8 +812,7 @@ function validateImportInput(): void {
   const payload = parseLocalUserStoragePayload(input);
 
   if (!payload) {
-    importValidationMessage.value =
-      "Backup JSON is invalid or does not match the expected Laidir backup structure.";
+    importValidationMessage.value = INVALID_BACKUP_JSON_MESSAGE;
     canSubmitImport.value = false;
     return;
   }
@@ -896,8 +859,7 @@ function submitImport(): void {
   const payload = parseLocalUserStoragePayload(importJsonInput.value.trim());
 
   if (!payload) {
-    importValidationMessage.value =
-      "Backup JSON is invalid or does not match the expected Laidir backup structure.";
+    importValidationMessage.value = INVALID_BACKUP_JSON_MESSAGE;
     return;
   }
 
@@ -993,8 +955,7 @@ function handleStorageSync(event: StorageEvent): void {
 
   if (
     activeUserId.value !== null &&
-    event.key ===
-      `irontrack.users.${activeUserId.value}.${STORAGE_KEYS.userProfile}`
+    isUserProfileStorageKey(event.key, activeUserId.value)
   ) {
     applyThemeFromProfile();
   }

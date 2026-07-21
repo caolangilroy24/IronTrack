@@ -4,6 +4,12 @@ dist/
 coverage/
 .env
 .env.*
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
 *.local
 laidir_backup_*.json
 irontrack-backup*.json

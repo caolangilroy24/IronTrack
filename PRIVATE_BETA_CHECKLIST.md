@@ -4,15 +4,15 @@ Use this as the handoff checklist from local dev to whitelist-only MVP hosting.
 
 ## 1. Quality Validation (Before Handoff)
 
-- [ ] Run tests: `npm run test`
-- [ ] Build production bundle: `npm run build`
-- [ ] Smoke-test local production preview: `npm run preview`
-- [ ] Verify all Vue files still follow `<template>` -> `<script setup lang="ts">` -> `<style scoped>`
+- [ y ] Run tests: `npm run test`
+- [ y ] Build production bundle: `npm run build`
+- [ y ] Smoke-test local production preview: `npm run preview`
+- [ y ] Verify all Vue files still follow `<template>` -> `<script setup lang="ts">` -> `<style scoped>`
 
 ## 2. Repository Hygiene
 
-- [ ] Ensure `.env`, `.env.*`, cert/key files, and generated backup JSON files are ignored
-- [ ] Confirm no private JSON backups are committed (`laidir_backup_*.json`, `irontrack-backup*.json`)
+- [ y ] Ensure `.env`, `.env.*`, cert/key files, and generated backup JSON files are ignored
+- [ y ] Confirm no private JSON backups are committed (`laidir_backup_*.json`, `irontrack-backup*.json`)
 - [ ] Keep `.github` versioned unless a file contains private host credentials
 - [ ] If private host-specific notes are needed, place them in `*.local` files (already ignored)
 

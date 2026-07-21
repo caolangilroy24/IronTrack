@@ -140,12 +140,10 @@
 import { computed, ref } from "vue";
 import { Notify } from "quasar";
 import { useRouter } from "vue-router";
-import { seedExercises } from "@/data/seedExercises";
 import {
-  getExercises,
+  getInitializedExercises,
   getWorkoutLogs,
   getWorkoutTemplates,
-  saveExercises,
   saveWorkoutLogs,
 } from "@/storage/localStorage";
 import type {
@@ -171,7 +169,7 @@ type DraftExercise = {
 
 const router = useRouter();
 const templates = ref<WorkoutTemplate[]>(getWorkoutTemplates());
-const exercises = loadExercises();
+const exercises = getInitializedExercises();
 const selectedTemplateId = ref<number | null>(null);
 const activeExerciseDrafts = ref<DraftExercise[]>([]);
 const previousLogDate = ref<string | null>(null);
@@ -344,27 +342,6 @@ function wait(milliseconds: number): Promise<void> {
   return new Promise((resolve) => {
     window.setTimeout(resolve, milliseconds);
   });
-}
-
-function loadExercises(): Exercise[] {
-  const storedExercises = getExercises();
-  const mergedById = new Map<number, Exercise>();
-
-  seedExercises.forEach((exercise) => {
-    mergedById.set(exercise.id, exercise);
-  });
-
-  storedExercises.forEach((exercise) => {
-    mergedById.set(exercise.id, exercise);
-  });
-
-  const mergedExercises = Array.from(mergedById.values()).sort((left, right) =>
-    left.name.localeCompare(right.name),
-  );
-
-  saveExercises(mergedExercises);
-
-  return mergedExercises;
 }
 
 function getNextLogId(logs: WorkoutLog[]): number {

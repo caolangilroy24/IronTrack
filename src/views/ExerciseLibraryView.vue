@@ -63,12 +63,11 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { seedExercises } from "@/data/seedExercises";
-import { getExercises, saveExercises } from "@/storage/localStorage";
+import { getInitializedExercises } from "@/storage/localStorage";
 import type { Exercise } from "@/types/models";
 
 const searchQuery = ref("");
-const exercises = ref<Exercise[]>(loadExercises());
+const exercises = ref<Exercise[]>(getInitializedExercises());
 
 const filteredExercises = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
@@ -81,27 +80,6 @@ const filteredExercises = computed(() => {
     exercise.name.toLowerCase().includes(query),
   );
 });
-
-function loadExercises(): Exercise[] {
-  const storedExercises = getExercises();
-  const mergedById = new Map<number, Exercise>();
-
-  seedExercises.forEach((exercise) => {
-    mergedById.set(exercise.id, exercise);
-  });
-
-  storedExercises.forEach((exercise) => {
-    mergedById.set(exercise.id, exercise);
-  });
-
-  const mergedExercises = Array.from(mergedById.values()).sort((left, right) =>
-    left.name.localeCompare(right.name),
-  );
-
-  saveExercises(mergedExercises);
-
-  return mergedExercises;
-}
 </script>
 
 <style scoped>

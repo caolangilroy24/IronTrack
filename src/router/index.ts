@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
-import Dashboard from "@/components/Dashboard.vue";
-import RoutineTemplateManager from "@/components/RoutineTemplateManager.vue";
+import Dashboard from "@/views/Dashboard.vue";
+import RoutineTemplateManager from "@/views/RoutineTemplateManager.vue";
 import ActiveWorkoutView from "@/views/ActiveWorkoutView.vue";
 import ExerciseLibraryView from "@/views/ExerciseLibraryView.vue";
 import WorkoutHistoryView from "@/views/WorkoutHistoryView.vue";

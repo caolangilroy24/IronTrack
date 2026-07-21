@@ -3,7 +3,9 @@
     <div class="manager-shell q-mx-auto column q-gutter-md">
       <q-card flat bordered class="bg-dark text-white">
         <q-card-section>
-          <div class="text-subtitle1 text-weight-bold text-primary">Workout Templates</div>
+          <div class="text-subtitle1 text-weight-bold text-primary">
+            Workout Templates
+          </div>
           <div class="text-subtitle2 text-grey-5">
             Build and maintain reusable routines for fast workout starts.
           </div>
@@ -23,15 +25,23 @@
             />
 
             <div>
-              <div class="text-subtitle2 text-grey-4 q-mb-sm">Muscle groups</div>
+              <div class="text-subtitle2 text-grey-4 q-mb-sm">
+                Muscle groups
+              </div>
               <div class="row q-gutter-sm">
                 <q-chip
                   v-for="muscleGroup in templateMuscleGroups"
                   :key="muscleGroup"
                   clickable
                   square
-                  :color="form.muscleGroups.includes(muscleGroup) ? 'deep-orange' : 'grey-9'"
-                  :text-color="form.muscleGroups.includes(muscleGroup) ? 'black' : 'white'"
+                  :color="
+                    form.muscleGroups.includes(muscleGroup)
+                      ? 'deep-orange'
+                      : 'grey-9'
+                  "
+                  :text-color="
+                    form.muscleGroups.includes(muscleGroup) ? 'black' : 'white'
+                  "
                   @click="toggleMuscleGroup(muscleGroup)"
                 >
                   {{ muscleGroup }}
@@ -152,12 +162,10 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
-import { seedExercises } from "@/data/seedExercises";
 import {
   deleteWorkoutTemplateById,
-  getExercises,
+  getInitializedExercises,
   getWorkoutTemplates,
-  saveExercises,
   saveWorkoutTemplate,
 } from "@/storage/localStorage";
 import { MUSCLE_GROUPS } from "@/types/models";
@@ -184,7 +192,7 @@ const templateMuscleGroups: MuscleGroup[] = [
 
 const editingTemplateId = ref<number | null>(null);
 const templates = ref<WorkoutTemplate[]>(getWorkoutTemplates());
-const exercises = ref<Exercise[]>(loadExercises());
+const exercises = ref<Exercise[]>(getInitializedExercises());
 const form = reactive<TemplateFormState>({
   name: "",
   muscleGroups: [],
@@ -212,18 +220,6 @@ const isPristine = computed(
     form.muscleGroups.length === 0 &&
     form.exercises.length === 0,
 );
-
-function loadExercises(): Exercise[] {
-  const storedExercises = getExercises();
-
-  if (storedExercises.length > 0) {
-    return storedExercises;
-  }
-
-  saveExercises(seedExercises);
-
-  return seedExercises;
-}
 
 function toggleMuscleGroup(muscleGroup: MuscleGroup): void {
   if (!MUSCLE_GROUPS.includes(muscleGroup)) {

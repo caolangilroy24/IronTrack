@@ -10,6 +10,7 @@ import type {
   WorkoutLog,
   WorkoutTemplate,
 } from "@/types/models";
+import { seedExercises } from "@/data/seedExercises";
 import { MUSCLE_GROUPS } from "@/types/models";
 import { z } from "zod";
 
@@ -54,6 +55,30 @@ function isValidLocalUserId(userId: string): boolean {
 function getUserScopedKey(baseKey: string, userId: string): string {
   // Launch V1: Keep this user-id scoping strict and validated because profile separation is trust-based until authenticated accounts are added in Milestone 7.
   return `irontrack.users.${userId}.${baseKey}`;
+}
+
+const EXPORT_SIGNATURE_KEY = "lastExportSignature";
+
+export function getUserExportSignature(userId: string): string | null {
+  return localStorage.getItem(getUserScopedKey(EXPORT_SIGNATURE_KEY, userId));
+}
+
+export function saveUserExportSignature(
+  userId: string,
+  templates: WorkoutTemplate[],
+  logs: WorkoutLog[],
+): void {
+  localStorage.setItem(
+    getUserScopedKey(EXPORT_SIGNATURE_KEY, userId),
+    JSON.stringify({ templates, logs }),
+  );
+}
+
+export function isUserProfileStorageKey(
+  key: string | null,
+  userId: string,
+): boolean {
+  return key === getUserScopedKey(STORAGE_KEYS.userProfile, userId);
 }
 
 function normalizeMuscleGroups(value: unknown): Exercise["muscleGroups"] {
@@ -360,6 +385,27 @@ export function getExercises(): Exercise[] {
   return readArray<Exercise | LegacyExercise>(STORAGE_KEYS.exercises).map(
     normalizeExercise,
   );
+}
+
+export function getInitializedExercises(): Exercise[] {
+  const storedExercises = getExercises();
+  const mergedById = new Map<number, Exercise>();
+
+  seedExercises.forEach((exercise) => {
+    mergedById.set(exercise.id, exercise);
+  });
+
+  storedExercises.forEach((exercise) => {
+    mergedById.set(exercise.id, exercise);
+  });
+
+  const mergedExercises = Array.from(mergedById.values()).sort((left, right) =>
+    left.name.localeCompare(right.name),
+  );
+
+  saveExercises(mergedExercises);
+
+  return mergedExercises;
 }
 
 export function saveExercises(exercises: Exercise[]): void {

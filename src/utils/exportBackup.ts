@@ -2,13 +2,14 @@ import {
   getLocalStoragePayload,
   getLocalUserStoragePayload,
 } from '@/storage/localStorage'
+import { APP_CONFIG } from '@/config/appConfig'
 
 export function buildBackupFileName(now = new Date()): string {
   const year = now.getFullYear().toString()
   const month = (now.getMonth() + 1).toString().padStart(2, '0')
   const day = now.getDate().toString().padStart(2, '0')
 
-  return `laidir_backup_${year}${month}${day}.json`
+  return `${APP_CONFIG.backup.userFilePrefix}_${year}${month}${day}.json`
 }
 
 export function downloadJsonFile(json: string, fileName: string): void {
@@ -36,7 +37,9 @@ export function exportLocalUserStorageBackup(
   return json
 }
 
-export function exportLocalStorageBackup(fileName = 'irontrack-backup.json'): string {
+export function exportLocalStorageBackup(
+  fileName = APP_CONFIG.backup.allDataFileName,
+): string {
   const payload = getLocalStoragePayload()
   const json = JSON.stringify(payload, null, 2)
   downloadJsonFile(json, fileName)

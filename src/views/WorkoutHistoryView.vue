@@ -74,12 +74,10 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { seedExercises } from "@/data/seedExercises";
 import {
-  getExercises,
+  getInitializedExercises,
   getWorkoutLogs,
   getWorkoutTemplates,
-  saveExercises,
 } from "@/storage/localStorage";
 import type { Exercise, WorkoutLog, WorkoutTemplate } from "@/types/models";
 
@@ -102,7 +100,7 @@ const logs = getWorkoutLogs()
   .sort((left, right) => {
     return new Date(right.date).getTime() - new Date(left.date).getTime();
   });
-const exercises = loadExercises();
+const exercises = getInitializedExercises();
 
 const templateNameById = new Map<number, string>(
   templates.map((template) => [template.id, template.name]),
@@ -136,27 +134,6 @@ const groupedLogs = computed<HistoryGroup[]>(() => {
       logs: entries,
     }));
 });
-
-function loadExercises(): Exercise[] {
-  const storedExercises = getExercises();
-  const mergedById = new Map<number, Exercise>();
-
-  seedExercises.forEach((exercise) => {
-    mergedById.set(exercise.id, exercise);
-  });
-
-  storedExercises.forEach((exercise) => {
-    mergedById.set(exercise.id, exercise);
-  });
-
-  const mergedExercises = Array.from(mergedById.values()).sort((left, right) =>
-    left.name.localeCompare(right.name),
-  );
-
-  saveExercises(mergedExercises);
-
-  return mergedExercises;
-}
 
 function enrichLog(log: WorkoutLog): EnrichedLog {
   let totalVolume = 0;
